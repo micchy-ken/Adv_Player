@@ -20,11 +20,11 @@ export function parseBlogContent(content: string): ParsedScenario[] {
   let itemIndex = 0;
 
   // First pass: Find title anywhere in the blog post
-  // (We search for the "***タイトル***" line and take the first subsequent non-empty line as the general title)
+  // (We search for the "【タイトル】" or "***タイトル***" line and take the first subsequent non-empty line as the general title)
   let extractedTitle = "";
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
-    if (line === "***タイトル***" && i + 1 < lines.length) {
+    if ((line === "***タイトル***" || line === "【タイトル】") && i + 1 < lines.length) {
       // Find next non-empty line
       let j = i + 1;
       while (j < lines.length && !lines[j].trim()) {
@@ -43,7 +43,8 @@ export function parseBlogContent(content: string): ParsedScenario[] {
     const trimmedLine = rawLine.trim();
 
     // Check if it's a tag starting a scenario block
-    const startTagMatch = trimmedLine.match(/^\*\*\*(.+)\*\*\*$/);
+    // Supports *** シーン *** OR 【 シーン 】
+    const startTagMatch = trimmedLine.match(/^(?:\*\*\*|【)\s*(.+?)\s*(?:\*\*\*|】)$/);
     
     if (startTagMatch) {
       const tagContent = startTagMatch[1].trim();

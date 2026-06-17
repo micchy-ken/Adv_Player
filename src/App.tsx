@@ -23,6 +23,8 @@ export default function App() {
   
   // Game state: when populated, shows the adventure game popup overlay over the whole screen
   const [activePlayScenario, setActivePlayScenario] = useState<ParsedScenario | null>(null);
+  const [isLoadingUrl, setIsLoadingUrl] = useState(false);
+  const [urlFetchError, setUrlFetchError] = useState<string | null>(null);
 
   // 1. URL Query parameters initialization & 2. Window PostMessage receivers
   useEffect(() => {
@@ -32,6 +34,7 @@ export default function App() {
       // A. Load from direct RAW content parameter (url-encoded or base64)
       const rawContentParam = searchParams.get('content') || searchParams.get('blog_content');
       if (rawContentParam) {
+        setIsLoadingUrl(true);
         try {
           let decodedContent = '';
           if (rawContentParam.startsWith('b64:')) {
@@ -45,34 +48,59 @@ export default function App() {
             const parsed = parseBlogContent(decodedContent);
             if (parsed && parsed.length > 0) {
               setActivePlayScenario(parsed[0]);
+              setIsLoadingUrl(false);
               return;
+            } else {
+              setUrlFetchError("渡されたテキスト内にシナリオデータ(【タイトル】 など)が見つかりませんでした。");
             }
           }
         } catch (e) {
           console.error("Failed to decode inline content query parameter:", e);
+          setUrlFetchError("URLパラメータのテキスト解読に失敗しました。");
         }
+        setIsLoadingUrl(false);
       }
 
       // B. Load from external Blog URL (if CORS permits or utilizing free proxy fallback)
       const blogUrlParam = searchParams.get('url') || searchParams.get('blog_url');
       if (blogUrlParam) {
+        setIsLoadingUrl(true);
+        setUrlFetchError(null);
         try {
           // Use a public CORS proxy helper for user simplicity
-          const corsProxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(blogUrlParam)}`;
+          // Note: Add cache busting stamp to ensure we get latest
+          const corsProxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(blogUrlParam)}&_t=${Date.now()}`;
           const response = await fetch(corsProxyUrl);
           if (response.ok) {
             const data = await response.json();
             const htmlContent = data.contents;
             // Extract core text or use straight content
             if (htmlContent) {
-              // Strip basic tags to reveal markdown/plaintext content containing adventure triggers
-              const cleanText = htmlContent.replace(/<[^>]*>/g, '\n');
+              const parser = new DOMParser();
+              const doc = parser.parseFromString(htmlContent, 'text/html');
+              // Remove script and styles so they don't corrupt text
+              Array.from(doc.querySelectorAll('script, style, noscript, iframe, link, meta')).forEach(el => el.remove());
+              
+              // Try textContent first, fallback to regex
+              let cleanText = doc.body ? doc.body.textContent || "" : htmlContent.replace(/<[^>]*>/g, '\n');
+              // Convert non-breaking spaces back
+              cleanText = cleanText.replace(/&nbsp;/g, ' ').replace(/\u00A0/g, ' ');
+              
               const parsed = parseBlogContent(cleanText);
               if (parsed && parsed.length > 0) {
                 setActivePlayScenario(parsed[0]);
+                setIsLoadingUrl(false);
                 return;
+              } else {
+                console.warn("Adv_Player: No valid scenarios found in fetched blog content.", cleanText.substring(0, 500));
+                setUrlFetchError("ブログの読み込みに成功しましたが、記事内にシナリオタグ (【タイトル】 など) が見つかりませんでした。");
               }
+            } else {
+               setUrlFetchError("ブログのコンテンツが空でした。URLを確認してください。");
             }
+          } else {
+             setUrlFetchError(`プロキシサーバーエラー (${response.status})。直接読み込みを試みます...`);
+             throw new Error("Proxy error");
           }
         } catch (e) {
           console.error("CORS proxy fetch error, attempting direct fetch fallback:", e);
@@ -80,15 +108,21 @@ export default function App() {
             const directRes = await fetch(blogUrlParam);
             if (directRes.ok) {
               const directText = await directRes.text();
-              const parsed = parseBlogContent(directText);
+              const parsed = parseBlogContent(directText.replace(/<[^>]*>/g, '\n'));
               if (parsed && parsed.length > 0) {
                 setActivePlayScenario(parsed[0]);
+              } else {
+                 setUrlFetchError("直接読み込み成功: 記事内にシナリオタグが見つかりませんでした。");
               }
+            } else {
+               setUrlFetchError(`直接読み込みも失敗しました (${directRes.status})。CORS制限またはURLが無効です。`);
             }
           } catch (err) {
             console.error("Direct fetch failed due to CORS restrictions:", err);
+            setUrlFetchError("ブログの読み込みに失敗しました。CORS制限またはURLが無効な可能性があります。");
           }
         }
+        setIsLoadingUrl(false);
       }
     };
 
@@ -136,10 +170,10 @@ export default function App() {
 ここに日常の話を書きます。
 ちょっとしたドラマ仕立ての対話を下に書いてみます。
 
-***タイトル***
+【タイトル】
 放課後の小さな相談会
 
-***幼馴染の図書室***
+【幼馴染の図書室】
 葵: ねえ、ちょっと時間ある？
 
 颯太: どうしたんだ、そんな真剣な顔して。
@@ -149,7 +183,7 @@ export default function App() {
 颯太: そうか、なんでも聞くよ。
 
 葵: ……やっぱりなんでもない！バカ！
-***end***
+【end】
 
 このように、任意のタイミングでタグを締めくくることでブログと会話劇が自然に融合します。`
     };
@@ -313,6 +347,26 @@ export default function App() {
           <span>💡 使い方: 記事本文に会話劇タグを埋め込んで再生ボタンを押します。キャスト設定で表情や背景もカスタマイズ可能！</span>
         </div>
       </section>
+
+      {/* URL Proxy Loader Status */}
+      {(isLoadingUrl || urlFetchError) && (
+        <section className={`px-6 py-3 text-xs flex items-center justify-between gap-4 border-b ${urlFetchError ? 'bg-red-50 text-red-700 border-red-200' : 'bg-blue-50 text-blue-800 border-blue-200'}`}>
+          <div className="flex items-center gap-2 font-bold font-sans">
+             {isLoadingUrl ? (
+               <>
+                 <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin shrink-0"></div>
+                 URLから外部ブログのシナリオを読み込んでいます...
+               </>
+             ) : (
+               <>
+                 <Info className="w-4 h-4 shrink-0" />
+                 {urlFetchError}
+                 <button onClick={() => setUrlFetchError(null)} className="ml-4 underline hover:text-red-900 cursor-pointer">閉じる</button>
+               </>
+             )}
+          </div>
+        </section>
+      )}
 
       {/* Main Container Content */}
       <div className="flex-1 max-w-[1400px] w-full mx-auto" id="app-body-container">
