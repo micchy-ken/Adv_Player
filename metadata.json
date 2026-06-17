@@ -1,0 +1,6 @@
+{
+  "name": "Blog to Adventure Game UI Generator",
+  "description": "ブログ記事内の会話テキストからアドベンチャーゲーム風UIを自動生成するプロトタイプアプリです。複数のキャラクター、背景、演出設定の管理やクリック待ち機能に対応しています。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
