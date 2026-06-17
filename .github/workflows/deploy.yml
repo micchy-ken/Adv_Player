@@ -8,7 +8,6 @@ on:
 
 permissions:
   contents: read
-  id-token: write
 
 jobs:
   build-and-test:
@@ -20,10 +19,12 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
 
       - name: Install dependencies
-        run: npm install
+        run: |
+          npm install
+          npm install @tailwindcss/oxide-linux-x64-gnu --no-save
 
       - name: Run linter
         run: npm run lint
@@ -31,22 +32,5 @@ jobs:
       - name: Build static site
         run: npm run build
         env:
-          VITE_APP_URL: ${{ secrets.VITE_APP_URL || 'https://ais-pre-z3hew5j5hifpwf3xncczcz-381177456753.asia-northeast1.run.app' }}
+          VITE_APP_URL: ${{ secrets.VITE_APP_URL }}
 
-      # 💡 Note on Deployment:
-      # If deploying to Github Pages, uncomment the section below.
-      # Or if deploying to Google Cloud Run (recommended since this applet is backed by Cloud Run):
-      # You can complete the setup using 'google-github-actions/auth' and 'google-github-actions/deploy-cloudrun'.
-      
-      # - name: Authenticate to Google Cloud
-      #   uses: google-github-actions/auth@v2
-      #   with:
-      #     workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-      #     service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
-
-      # - name: Deploy to Cloud Run
-      #   uses: google-github-actions/deploy-cloudrun@v2
-      #   with:
-      #     service: 'blog-adventure-game'
-      #     region: 'asia-northeast1'
-      #     source: './'
