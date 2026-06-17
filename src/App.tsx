@@ -62,7 +62,14 @@ export default function App() {
       }
 
       // B. Load from external Blog URL (if CORS permits or utilizing free proxy fallback)
-      const blogUrlParam = searchParams.get('url') || searchParams.get('blog_url');
+      let blogUrlParam = searchParams.get('url') || searchParams.get('blog_url');
+      
+      // (NEW) C. Load from Referrer if requested (e.g. ?auto=1)
+      const autoRefParam = searchParams.get('auto') || searchParams.get('auto_ref');
+      if (!blogUrlParam && autoRefParam && document.referrer) {
+        blogUrlParam = document.referrer;
+      }
+
       if (blogUrlParam) {
         setIsLoadingUrl(true);
         setUrlFetchError(null);
@@ -486,6 +493,36 @@ export default function App() {
                         <Copy className="w-4 h-4" />
                       </button>
                     </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Method C: Referrer auto-read */}
+              <div className="border border-zinc-200 rounded-xl p-5 bg-zinc-50 space-y-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-2 bg-purple-100 text-purple-950 border border-purple-200 px-3 py-1 rounded-full text-[10px] font-bold uppercase">
+                    方式 C (魔法のリンク)
+                  </div>
+                  <span className="text-xs font-bold text-zinc-700">自動リファラー読み込み方式</span>
+                </div>
+                <p className="text-xs text-zinc-600 leading-relaxed">
+                  ブログ上のリンクに少し魔法をかけるだけです。
+                  <code>?auto=1</code> という短いパラメータをつけるだけで、Adv_Player は「どのブログから飛んできたのか？(Referrer)」を自動で検知し、その元のブログのURLから本文を取得してシナリオを再生します。
+                </p>
+
+                <div className="bg-white border border-zinc-200 rounded-xl p-4 space-y-3">
+                  <span className="block text-[10px] font-black uppercase text-zinc-400 mb-1">
+                    魔法のリンク (自分のブログからこのリンク先に飛ぶだけ)
+                  </span>
+                  <div className="bg-zinc-50 p-2.5 rounded-lg border font-mono text-[11px] text-zinc-700 break-all flex items-center justify-between gap-4">
+                    <span className="select-all flex-1 line-clamp-1">{currentAppURL}?auto=1</span>
+                    <button
+                      onClick={() => handleCopy(`${currentAppURL}?auto=1`)}
+                      className="p-1.5 hover:bg-zinc-200 rounded text-zinc-500 transition-all shrink-0 cursor-pointer"
+                      title="URLをコピー"
+                    >
+                      <Copy className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
               </div>
