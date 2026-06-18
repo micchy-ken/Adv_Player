@@ -236,7 +236,7 @@ export default function App() {
   // Find configuration for active scenario with fuzzy matching fallback
   const activeConfig = activePlayScenario 
     ? (scenarios[activePlayScenario.id] || 
-       Object.values(scenarios).find(s => 
+       Object.values(scenarios).find((s: ScenarioConfig) => 
          activePlayScenario.id.toLowerCase().includes(s.id.toLowerCase()) || 
          s.id.toLowerCase().includes(activePlayScenario.id.toLowerCase())
        )
