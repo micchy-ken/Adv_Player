@@ -88,15 +88,8 @@ export function parseBlogContent(content: string): ParsedScenario[] {
     // Inside a scenario block
     if (currentScenarioId) {
       if (trimmedLine === "") {
-        // Blank line is treated as a "click-wait" event
-        // Only append click-wait if we have dialogue before it, to prevent consecutive leading click-waits
-        if (currentItems.length > 0 && currentItems[currentItems.length - 1].type !== 'click-wait') {
-          currentItems.push({
-            id: `item-${currentScenarioId}-${itemIndex++}`,
-            type: 'click-wait',
-            index: itemIndex,
-          });
-        }
+        // We skip empty lines to rely on natural click-to-advance flow
+        continue;
       } else {
         // Check if there is a character speaking (colon check)
         // Match both halfwidth and fullwidth colons, e.g. "佐藤:" or "佐藤：" or "佐藤 : "

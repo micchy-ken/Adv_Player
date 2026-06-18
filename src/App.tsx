@@ -355,22 +355,13 @@ export default function App() {
         </div>
       </section>
 
-      {/* URL Proxy Loader Status */}
-      {(isLoadingUrl || urlFetchError) && (
-        <section className={`px-6 py-3 text-xs flex items-center justify-between gap-4 border-b ${urlFetchError ? 'bg-red-50 text-red-700 border-red-200' : 'bg-blue-50 text-blue-800 border-blue-200'}`}>
+      {/* URL Proxy Loader Error Status */}
+      {urlFetchError && (
+        <section className="px-6 py-3 text-xs flex items-center justify-between gap-4 border-b bg-red-50 text-red-700 border-red-200">
           <div className="flex items-center gap-2 font-bold font-sans">
-             {isLoadingUrl ? (
-               <>
-                 <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin shrink-0"></div>
-                 URLから外部ブログのシナリオを読み込んでいます...
-               </>
-             ) : (
-               <>
-                 <Info className="w-4 h-4 shrink-0" />
-                 {urlFetchError}
-                 <button onClick={() => setUrlFetchError(null)} className="ml-4 underline hover:text-red-900 cursor-pointer">閉じる</button>
-               </>
-             )}
+            <Info className="w-4 h-4 shrink-0" />
+            {urlFetchError}
+            <button onClick={() => setUrlFetchError(null)} className="ml-4 underline hover:text-red-900 cursor-pointer">閉じる</button>
           </div>
         </section>
       )}
@@ -551,6 +542,26 @@ export default function App() {
             config={resolvedConfig}
             onClose={() => setActivePlayScenario(null)}
           />
+        )}
+      </AnimatePresence>
+
+      {/* Full-screen Loading Overlay for URL Proxy fetching */}
+      <AnimatePresence>
+        {isLoadingUrl && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/80 backdrop-blur-sm"
+          >
+            <div className="bg-white p-8 rounded-2xl shadow-2xl flex flex-col items-center gap-5 max-w-sm w-full text-center">
+              <div className="w-12 h-12 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin"></div>
+              <div className="space-y-1">
+                <p className="text-xl font-black text-zinc-900 tracking-tight">シナリオを読み込み中</p>
+                <p className="text-xs text-zinc-500 font-medium">外部ブログからデータを抽出しています...</p>
+              </div>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
 

@@ -12,17 +12,17 @@ export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
     backgroundUrl: "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80",
     themeColor: "amber",
     characters: {
-      "佐藤": {
-        key: "佐藤",
-        displayName: "佐藤部長",
-        avatarUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&h=150&q=80",
+      "上司": {
+        key: "上司",
+        displayName: "上司",
+        avatarUrl: "/src/assets/images/anime_female_boss_1781746518604.jpg",
         color: "#d97706", // amber-600
         position: "left"
       },
-      "鈴木": {
-        key: "鈴木",
-        displayName: "鈴木くん",
-        avatarUrl: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=150&h=150&q=80",
+      "部下": {
+        key: "部下",
+        displayName: "部下",
+        avatarUrl: "/src/assets/images/anime_male_subordinate_1781746532145.jpg",
         color: "#2563eb", // blue-600
         position: "right"
       }
@@ -88,18 +88,18 @@ export const DEFAULT_BLOGS: BlogItem[] = [
 佐藤部長の抜き打ち議事録チェック！
 
 【上司と部下】
-佐藤: おはよう、鈴木くん。昨日の定例ミーティングの議事録はもうできているかね？
+上司: おはよう、部下くん。昨日の定例ミーティングの議事録はもうできているかね？
 
-鈴木: 部長、おはようございます！はい、こちらになります。会議終了後、重要決定事項と次回アクションに絞って30分でまとめました。
+部下: おはようございます！はい、こちらになります。会議終了後、重要決定事項と次回アクションに絞って30分でまとめました。
 
-佐藤: ほう……どれどれ。
-佐藤: おお、素晴らしい！決定した事項が太字で強調されていて、誰がいつまでに何をするかが一目でわかる。
+上司: ほう……どれどれ。
+上司: おお、素晴らしい！決定した事項が太字で強調されていて、誰がいつまでに何をするかが一目でわかる。
 
-鈴木: ありがとうございます！先輩に「忙しい上司はスクロールせずに読める構成を好む」とアドバイスをいただきまして。
+部下: ありがとうございます！先輩に「忙しい上司はスクロールせずに読める構成を好む」とアドバイスをいただきまして。
 
-佐藤: 実に素晴らしいぞ。これなら私もすぐに役員会で報告できる。鈴木くん、よくやった！
+上司: 実に素晴らしいぞ。これなら私もすぐに役員会で報告できる。部下くん、よくやった！
 
-鈴木: 光栄です！次回も素早いアウトプットを心がけます！
+部下: 光栄です！次回も素早いアウトプットを心がけます！
 【end】
 
 いかがでしたでしょうか？
