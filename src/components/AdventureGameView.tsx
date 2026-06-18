@@ -94,6 +94,19 @@ export default function AdventureGameView({
   const [isSkip, setIsSkip] = useState(false);
   const [showLog, setShowLog] = useState(false);
   const [isEnded, setIsEnded] = useState(false);
+  const [canClose, setCanClose] = useState(false);
+
+  // Prevent accidental quick double clicks/touches from instantly skipping ending screen
+  useEffect(() => {
+    if (isEnded) {
+      const timer = setTimeout(() => {
+        setCanClose(true);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else {
+      setCanClose(false);
+    }
+  }, [isEnded]);
 
   const typewriterTimer = useRef<NodeJS.Timeout | null>(null);
   const audioSynth = useMemo(() => new RetroAudioSynth(), []);
@@ -741,21 +754,66 @@ export default function AdventureGameView({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="absolute inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm cursor-pointer"
+            className="absolute inset-0 z-[100] flex flex-col items-center justify-center bg-zinc-950/95 backdrop-blur-md px-6 text-center select-none"
+            id="ending-screen-overlay"
           >
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.2 }}
-              className="text-center space-y-4"
+              transition={{ delay: 0.2, type: 'spring', stiffness: 100 }}
+              className="w-full max-w-sm space-y-6 bg-zinc-900/40 p-8 rounded-3xl border border-white/5 shadow-2xl"
+              id="ending-screen-card"
             >
-              <h2 className="text-3xl sm:text-5xl font-black text-white tracking-widest uppercase">
-                SCENE END
-              </h2>
-              <p className="text-zinc-400 text-sm animate-pulse">
-                画面をクリックして閉じる
+              <div className="space-y-2">
+                <span className="text-[10px] text-emerald-400 tracking-widest font-black uppercase block animate-pulse">
+                  Story Completed
+                </span>
+                <h2 className="text-3xl sm:text-4xl font-black text-white tracking-widest uppercase">
+                  SCENE END
+                </h2>
+                <div className="w-16 h-1 bg-emerald-500 mx-auto rounded-full mt-1.5" />
+              </div>
+              
+              <p className="text-zinc-400 text-xs leading-relaxed">
+                お疲れ様でした！このシナリオの最後まで到達しました。
               </p>
+
+              <div className="pt-4 flex flex-col gap-3 items-center">
+                <button
+                  disabled={!canClose}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (canClose) onClose();
+                  }}
+                  className={`w-full py-3 rounded-xl font-bold text-xs transition-all tracking-wider uppercase cursor-pointer ${
+                    canClose
+                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-900/20 hover:-translate-y-0.5 active:translate-y-0'
+                      : 'bg-zinc-850 text-zinc-500 cursor-not-allowed opacity-80'
+                  }`}
+                  id="btn-ending-close"
+                >
+                  {canClose ? "ブログ編集に戻る" : "まもなく終了..."}
+                </button>
+                
+                <button
+                  disabled={!canClose}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (canClose) {
+                      handleReset();
+                      setIsEnded(false);
+                    }
+                  }}
+                  className={`w-full py-2.5 bg-transparent border border-zinc-800 hover:bg-zinc-850 rounded-xl font-bold text-[11px] transition-all tracking-wider ${
+                    canClose
+                      ? 'text-zinc-300 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer'
+                      : 'text-zinc-650 cursor-not-allowed'
+                  }`}
+                  id="btn-ending-reset"
+                >
+                  最初からやり直す
+                </button>
+              </div>
             </motion.div>
           </motion.div>
         )}
