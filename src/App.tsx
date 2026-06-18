@@ -17,18 +17,76 @@ import { AnimatePresence, motion } from 'motion/react';
 const extractTextFromHtml = (htmlContent: string) => {
   const parser = new DOMParser();
   const doc = parser.parseFromString(htmlContent, 'text/html');
-  Array.from(doc.querySelectorAll('script, style, noscript, iframe, link, meta')).forEach(el => el.remove());
+
+  // アメブロ(Ameba Blog)やその他SPA形式のブログがスマホ表示になった際のJSON-LD/INITIAL_STATE抽出
+  let jsonStringBody = "";
+  
+  // 1. ameblo init-state script tag
+  const amebloInitState = doc.querySelector('#init-state[type="application/json"]');
+  if (amebloInitState && amebloInitState.textContent) {
+    try {
+      const parsed = JSON.parse(amebloInitState.textContent);
+      // ameblo state path: entryState.entry.entryText
+      const bodyText = parsed?.entryState?.entry?.entryText || parsed?.entryText;
+      if (bodyText) {
+        jsonStringBody = bodyText;
+      }
+    } catch (e) {
+      console.warn("Failed to parse ameblo #init-state JSON:", e);
+    }
+  }
+
+  // 2. alternative: ameblo window.__INITIAL_STATE__ search from raw scripts
+  if (!jsonStringBody) {
+    const scripts = Array.from(doc.querySelectorAll('script'));
+    for (const script of scripts) {
+      const text = script.textContent || "";
+      if (text.includes('__INITIAL_STATE__')) {
+        // Extract JSON string from assignment
+        const match = text.match(/__INITIAL_STATE__\s*=\s*(\{.*?\});?\s*$/m) || 
+                      text.match(/__INITIAL_STATE__\s*=\s*(\{.*?\});/s) ||
+                      text.match(/__INITIAL_STATE__\s*=\s*(.*)/);
+        if (match) {
+          try {
+            let cleanJsonStr = match[1].trim();
+            if (cleanJsonStr.endsWith(';')) cleanJsonStr = cleanJsonStr.slice(0, -1);
+            const parsed = JSON.parse(cleanJsonStr);
+            const bodyText = parsed?.entryState?.entry?.entryText || parsed?.entry?.entryText;
+            if (bodyText) {
+              jsonStringBody = bodyText;
+              break;
+            }
+          } catch (e) {
+            console.warn("Failed to parse window.__INITIAL_STATE__:", e);
+          }
+        }
+      }
+    }
+  }
+
+  // 3. Fallback: If JSON-based body was successfully extracted, use it instead of parsing empty body!
+  let htmlToParse = htmlContent;
+  if (jsonStringBody) {
+    console.log("Successfully extracted text content from Ameblo state JSON!");
+    htmlToParse = `<body>${jsonStringBody}</body>`;
+  }
+
+  // Re-create the parser using the resolved HTML (either JSON extracted body, or original html)
+  const finalDoc = parser.parseFromString(htmlToParse, 'text/html');
+  Array.from(finalDoc.querySelectorAll('script, style, noscript, iframe, link, meta')).forEach(el => el.remove());
+  
   let cleanText = "";
-  if (doc.body) {
-    let html = doc.body.innerHTML;
+  if (finalDoc.body) {
+    let html = finalDoc.body.innerHTML;
     // Replace text-breaking tags with actual newlines to preserve visual structure
     html = html.replace(/<br[^>]*>/gi, '\n');
     html = html.replace(/<\/?(div|p|h[1-6]|li|tr|article|section|blockquote)[^>]*>/gi, '\n');
+    
     const parser2 = new DOMParser();
     const doc2 = parser2.parseFromString(html, 'text/html');
     cleanText = doc2.body.textContent || '';
   } else {
-    cleanText = htmlContent.replace(/<[^>]*>/g, '\n');
+    cleanText = htmlToParse.replace(/<[^>]*>/g, '\n');
   }
   return cleanText.replace(/&nbsp;/g, ' ').replace(/\u00A0/g, ' ');
 };
@@ -101,6 +159,18 @@ export default function App() {
           blogUrlParam = blogUrlParam.replace('s.ameblo.jp', 'ameblo.jp');
         }
 
+        // Clean tracking & styling parameters that trigger mobile redirection in ameblo
+        try {
+          const urlObj = new URL(blogUrlParam);
+          if (urlObj.hostname.includes('ameblo.jp')) {
+            const keysToRemove = ['frm_id', 'device_id', 'amba', 'gamp', 'amp', 'page', 'device'];
+            keysToRemove.forEach(k => urlObj.searchParams.delete(k));
+            blogUrlParam = urlObj.toString();
+          }
+        } catch(e) {
+          console.warn("Could not clean tracking params:", e);
+        }
+
         setIsLoadingUrl(true);
         setUrlFetchError(null);
         
@@ -111,7 +181,7 @@ export default function App() {
 
         try {
           // First, try direct fetch. This works if they are on same origin or CORS is allowed.
-          const directRes = await fetch(cleanFetchUrl);
+          const directRes = await fetch(cleanFetchUrl, { cache: 'no-store' });
           if (directRes.ok) {
             const htmlContent = await directRes.text();
             const cleanText = extractTextFromHtml(htmlContent);
@@ -135,7 +205,7 @@ export default function App() {
             // We include the cleanFetchUrl (with its cache-buster timestamp) inside the proxy URI 
             // and add a proxy-level cache-buster parameter to guarantee non-cached real-time response!
             const corsProxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(cleanFetchUrl)}&_=${Date.now()}`;
-            const response = await fetch(corsProxyUrl);
+            const response = await fetch(corsProxyUrl, { cache: 'no-store' });
             if (response.ok) {
               const data = await response.json();
               const htmlContent = data.contents;
