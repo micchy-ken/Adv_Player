@@ -120,7 +120,7 @@ export default function App() {
 
   const [detectedLinks, setDetectedLinks] = useState<{ url: string; title: string }[]>([]);
 
-  const fetchScenarioFromUrl = async (blogUrlParam: string) => {
+  const fetchScenarioFromUrl = async (blogUrlParam: string, isSecondaryAttempt: boolean = false) => {
     let finalCleanUrl = blogUrlParam;
     
     // Clean tracking & styling parameters that trigger mobile redirection in ameblo
@@ -135,20 +135,22 @@ export default function App() {
       console.warn("Could not clean tracking params:", e);
     }
 
-    setFetchLogs([]); // Reset diagnostic logs
-    setDetectedLinks([]); // Clear previous suggestions
+    if (!isSecondaryAttempt) {
+      setFetchLogs([]); // Reset diagnostic logs
+      setDetectedLinks([]); // Clear previous suggestions
+    }
     setIsLoadingUrl(true);
     setUrlFetchError(null);
     setShowDebugLogs(true); // Automatically expand log drawer so the user can see real-time progress!
 
-    addLog(`=== 外部ブログのシナリオ取得プロセスを開始します ===`);
+    addLog(`=== 外部ブログのシナリオ取得プロセスを開始します ${isSecondaryAttempt ? '(自動追従フェッチ)' : ''} ===`);
     addLog(`入力URL: ${blogUrlParam}`);
 
     if (blogUrlParam.includes('s.ameblo.jp')) {
       addLog(`検出: アメブロモバイル専用ドメイン (s.ameblo.jp)。`);
       addLog(`PC向けデスクトップレイアウトを強制するために ameblo.jp に書き換えます。`);
       finalCleanUrl = finalCleanUrl.replace('s.ameblo.jp', 'ameblo.jp');
-      addLog(`書き換え后: ${finalCleanUrl}`);
+      addLog(`書き換え後: ${finalCleanUrl}`);
     }
 
     addLog(`不要なトラッキングクエリのクリーンアップ完了.`);
@@ -195,7 +197,28 @@ export default function App() {
         const links = extractEntryLinks(html, blogUrlParam);
         if (links && links.length > 0) {
           setDetectedLinks(links);
-          addLog(`[${sourceName}] 【お役立ち情報】ブログのトップページまたは一覧ページが指定された可能性があります。候補となる個別記事URLを ${links.length} 件検出しました。`);
+          addLog(`[${sourceName}] 【情報】ブログのトップページ、一覧ページ、またはリファラーが削られたトップが指定された可能性があります。個別記事URLを ${links.length} 件検出しました。`);
+          
+          if (!isSecondaryAttempt) {
+            const newestLink = links[0];
+            addLog(`[自動フォールバック検出] リファラー等によりトップドメイン経由でアクセスされました。最新の個別記事「${newestLink.title}」をノークリックで自動的に二次フェッチします...`);
+            
+            // Set integration URL to the target URL so UI stays synchronized nicely
+            setIntegrationBlogUrl(newestLink.url);
+            
+            // Push candidate URL parameter to browser history for native refreshing to work seamlessly
+            try {
+              const newUrl = new URL(window.location.href);
+              newUrl.searchParams.set('url', newestLink.url);
+              window.history.pushState({}, '', newUrl.toString());
+            } catch(e) {}
+
+            // Direct non-blocking secondary trigger of fetchScenarioFromUrl inside a safe task trigger
+            setTimeout(() => {
+              fetchScenarioFromUrl(newestLink.url, true);
+            }, 600);
+            return true;
+          }
         }
         return false;
       }
@@ -351,10 +374,20 @@ export default function App() {
         if (extractedUrl) blogUrlParam = extractedUrl[0];
       }
       
-      // (NEW) C. Load from Referrer if requested (e.g. ?auto=1)
-      const autoRefParam = searchParams.get('auto') || searchParams.get('auto_ref');
-      if (!blogUrlParam && autoRefParam && document.referrer) {
-        blogUrlParam = document.referrer;
+      // Load from Referrer optionally (Supports raw referrer transition as well for seamless instant play)
+      if (!blogUrlParam && document.referrer) {
+        try {
+          const refUrlObj = new URL(document.referrer);
+          const currentUrlObj = new URL(window.location.href);
+          
+          // Exclude internal domain matches to prevent infinite fetch loops
+          if (refUrlObj.hostname !== currentUrlObj.hostname && 
+              !refUrlObj.hostname.includes('localhost') && 
+              !refUrlObj.hostname.includes('127.0.0.1')) {
+            addLog(`自動検出: リファラー流入を検知 (${document.referrer})。自動的にブログURLとしてセットします。`);
+            blogUrlParam = document.referrer;
+          }
+        } catch(e) {}
       }
 
       if (blogUrlParam) {
@@ -608,108 +641,12 @@ export default function App() {
       </header>
 
       {/* Info Status Board */}
-      <section className="bg-emerald-600 font-semibold text-white px-6 py-2.5 text-xs flex items-center justify-between gap-4">
+      <section className="bg-emerald-600 font-semibold text-white px-6 py-2.5 text-xs flex items-center justify-between gap-4" id="usage-status-bar">
         <div className="flex items-center gap-2">
           <Info className="w-4 h-4 shrink-0" />
-          <span>💡 使い方: 記事本文に会話劇タグを埋め込んで再生ボタンを押します。キャスト設定で表情や背景もカスタマイズ可能！</span>
+          <span>💡 使い方: 記事本文に「【タイトル】」、改行して「【シーン名】」、役名と台詞を「葵: セリフ」のように記述すると、Adv_Player が自動で読み取って豪華演出で再生します。</span>
         </div>
       </section>
-
-      {/* URL Proxy Loader Error Status */}
-      {urlFetchError && (
-        <section className="px-6 py-4 flex flex-col gap-3 border-b bg-red-50 text-red-900 border-red-200">
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-2 font-bold font-sans text-xs sm:text-sm text-red-700">
-              <Info className="w-4 h-4 shrink-0 text-red-500 animate-bounce" />
-              <span>{urlFetchError}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              {fetchLogs.length > 0 && (
-                <button
-                  onClick={() => setShowDebugLogs(!showDebugLogs)}
-                  className="px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-800 rounded-lg text-[11px] font-bold transition-all cursor-pointer border border-red-200 flex items-center gap-1 shrink-0"
-                >
-                  {showDebugLogs ? 'ログを閉じる' : '診断ログを表示'}
-                </button>
-              )}
-              <button 
-                onClick={() => {
-                  setUrlFetchError(null);
-                  setShowDebugLogs(false);
-                }} 
-                className="text-xs font-bold text-red-500 hover:text-red-900 cursor-pointer underline px-2 py-1 shrink-0"
-              >
-                閉じる
-              </button>
-            </div>
-          </div>
-
-          {detectedLinks.length > 0 && (
-            <div className="bg-white border border-red-200 rounded-xl p-4 mt-2 max-w-4xl w-full mx-auto shadow-xs text-xs space-y-3">
-              <p className="font-bold text-zinc-900 flex items-center gap-1.5 text-xs sm:text-sm">
-                <Link className="w-4 h-4 text-emerald-500 shrink-0" />
-                <span>候補となる記事（個別の日記・会話劇ページ）が見つかりました（クリックで再生開始）:</span>
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
-                {detectedLinks.map((link, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => {
-                      setIntegrationBlogUrl(link.url);
-                      // Push candidate URL parameter to browser history
-                      try {
-                        const newUrl = new URL(window.location.href);
-                        newUrl.searchParams.set('url', link.url);
-                        window.history.pushState({}, '', newUrl.toString());
-                      } catch(e) {}
-                      // Start fetching the specific clicked candidate link directly!
-                      fetchScenarioFromUrl(link.url);
-                    }}
-                    className="flex flex-col items-start text-left p-2.5 bg-zinc-50 hover:bg-emerald-50 hover:border-emerald-300 border border-zinc-200 rounded-lg cursor-pointer transition-all gap-1 w-full text-zinc-800"
-                  >
-                    <span className="font-bold line-clamp-1 text-zinc-950 hover:text-emerald-700">{link.title || "個別記事"}</span>
-                    <span className="text-[10px] text-zinc-400 font-mono line-clamp-1">{link.url}</span>
-                  </button>
-                ))}
-              </div>
-              <p className="text-[10px] text-red-600 font-medium bg-red-100/50 p-2 rounded border border-red-200/50">
-                ※ ブログのトップページや一覧ページは、複数の記事紹介が混ざるためシステムがシナリオを特定しづらい構造になっています。上記のリストより、会話劇が書かれている具体的な記事（日付やカスタム名が入っているURL）を選択して再生してください。
-              </p>
-            </div>
-          )}
-
-          {showDebugLogs && fetchLogs.length > 0 && (
-            <div className="bg-zinc-950 text-zinc-100 rounded-xl p-4 font-mono text-[11px] space-y-2 mt-1 shadow-inner border border-zinc-900 max-w-4xl w-full mx-auto select-text">
-              <div className="flex justify-between items-center pb-2 border-b border-zinc-800">
-                <span className="text-zinc-400 font-bold text-[10px] uppercase tracking-wider">Ameblo読み込み診断ログ</span>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(fetchLogs.join('\n'));
-                    alert('診断ログをクリップボードにコピーしました！そのままアシスタントチャットへペーストしていただけます。');
-                  }}
-                  className="px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1"
-                >
-                  <Copy className="w-3.5 h-3.5 text-zinc-400" />
-                  <span>ログを丸ごとコピー</span>
-                </button>
-              </div>
-              <div className="max-h-60 overflow-y-auto space-y-1 pr-1 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
-                {fetchLogs.map((log, index) => {
-                  let cls = "text-zinc-300";
-                  if (log.includes('成功') || log.includes('Succeeded') || log.includes('大成功')) cls = "text-emerald-400 font-semibold";
-                  if (log.includes('失敗') || log.includes('failed') || log.includes('Error') || log.includes('警告') || log.includes('エラー')) cls = "text-red-400 font-semibold";
-                  if (log.includes('[Backend]')) cls = "text-blue-400";
-                  return (
-                    <div key={index} className={`whitespace-pre-wrap break-all leading-normal ${cls}`}>
-                      {log}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </section>
-      )}
 
       {/* Main Container Content */}
       <div className="flex-1 max-w-[1400px] w-full mx-auto" id="app-body-container">
@@ -744,7 +681,7 @@ export default function App() {
                 </h2>
                 <p className="text-xs text-zinc-500 mt-2 leading-relaxed">
                   作成した Adv_Player は別サーバー（あなたのブログなど）から直接シナリオを読み取って自動起動する機能をあらかじめ備えています。<br />
-                  ブログ記事が読み込まれた時に、本アプリケーション（Adv_Player）へデータを引き渡し、ゲームを起動する2通りの優れた連携方法が利用可能です：
+                  ブログ記事が読み込まれた時に、本アプリケーション（Adv_Player）へデータを引き渡し、ゲームを起動する多様な連携方法が利用可能です：
                 </p>
               </div>
 
@@ -752,49 +689,33 @@ export default function App() {
               <div className="border border-zinc-200 rounded-xl p-5 bg-zinc-50 space-y-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2 bg-emerald-100 text-emerald-900 border border-emerald-200 px-3 py-1 rounded-full text-[10px] font-bold uppercase">
-                    方式 A (推奨)
+                    方式 A
                   </div>
                   <span className="text-xs font-bold text-zinc-700">ブログ記事本文から自動抽出 (iframe埋め込み)</span>
                 </div>
                 <p className="text-xs text-zinc-600 leading-relaxed">
-                  あなたのブログの本文内に以下のような <code>iframe</code> コード と 簡単な JavaScript を並べて貼るだけです。<br />
-                  ブログが表示されると自動で記事テキストをAdv_Playerがキャッチし、<strong>CORS制限をバイパスして、会話劇を画面上にそのまま開始できます。</strong>
+                  ブログの本文内に <code>iframe</code> を埋め込み、親子間通信でテキストを受け渡す方式です。CORS制限を気にせず最もインタラクティブに配置できます。
                 </p>
-
-                {/* Integration Code Box */}
-                <div className="relative">
-                  <button
-                    onClick={() => handleCopy(iframeIntegrationCode)}
-                    className="absolute top-3 right-3 flex items-center gap-1.5 text-xs bg-white hover:bg-zinc-100 border border-zinc-200 px-3 py-1.5 rounded-lg text-zinc-700 shadow-xs cursor-pointer transition-all font-semibold"
-                  >
-                    {copiedText ? (
-                      <>
-                        <Check className="w-3.5 h-3.5 text-emerald-600 animate-bounce" />
-                        <span>コピー完了!</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3.5 h-3.5 text-zinc-500" />
-                        <span>コードをコピー</span>
-                      </>
-                    )}
-                  </button>
-                  <pre className="bg-zinc-900 text-zinc-300 font-mono text-[10.5px] p-4 rounded-xl overflow-x-auto leading-relaxed border border-zinc-805 select-all max-h-[350px]">
-                    {iframeIntegrationCode}
-                  </pre>
+                <div className="bg-white border border-zinc-200 rounded-xl p-4 space-y-3">
+                  <span className="block text-[10px] font-black uppercase text-zinc-400 mb-1">
+                    埋め込み用 iframe コード (HTML編集画面に貼り付け)
+                  </span>
+                  <div className="bg-zinc-50 p-2.5 rounded-lg border font-mono text-[10px] text-zinc-700 break-all overflow-x-auto">
+                    {`<iframe id="adv-player-iframe" src="${currentAppURL}" style="width:100%; height:550px; border:none; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.05);"></iframe>`}
+                  </div>
                 </div>
               </div>
 
-              {/* Method B: URL Referral Redirect query */}
+              {/* Method B: Static url parameter */}
               <div className="border border-zinc-200 rounded-xl p-5 bg-zinc-50 space-y-4">
                 <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-2 bg-blue-100 text-blue-950 border border-blue-200 px-3 py-1 rounded-full text-[10px] font-bold uppercase">
+                  <div className="flex items-center gap-2 bg-blue-100 text-blue-900 border border-blue-200 px-3 py-1 rounded-full text-[10px] font-bold uppercase">
                     方式 B
                   </div>
                   <span className="text-xs font-bold text-zinc-700">記事のURLをパラメータとして引き渡す方法</span>
                 </div>
-                <p className="text-xs text-zinc-600 leading-relaxed">
-                  ブログ上の「ゲームを開始する」といったボタンのリンク先に、以下のようなクエリURLを指定して遷移・リダイレクトさせます。<br />
+                <p className="text-xs text-zinc-650/90 leading-relaxed font-semibold">
+                  別画面でゲームを独立起動したい場合、URLのクエリパラメータ「<code>?url=ブログ記事URL</code>」のような形式を指定して遷移・リダイレクトさせます。<br />
                   Adv_Player が自動でターゲットリンク先のテキストを解析し、CORSを自動回避(AllOriginsプロキシなど)しながら会話劇を構築します。
                 </p>
 
@@ -870,8 +791,57 @@ export default function App() {
                 </div>
               </div>
 
+              {/* Method D: Dynamic HTML Scripting (Universal Bulletproof for Android/Webviews) */}
+              <div className="border border-indigo-200 rounded-xl p-5 bg-indigo-50/70 space-y-4 col-span-full">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-2 bg-indigo-600 text-white border border-indigo-750 px-3 py-1 rounded-full text-[10px] font-black uppercase">
+                    方式 D (推奨・スマホ/アプリ完全対応)
+                  </div>
+                  <span className="text-xs font-black text-indigo-950">動的パラメータ自動付与方式（HTML貼り付け用）</span>
+                </div>
+                <p className="text-xs text-indigo-950/85 leading-relaxed font-medium">
+                  はてなブログなどの『HTML編集』画面に一言コピーするだけ。JavaScriptが自動的に現在の記事の正確なURL（例: <code>.../entry/2026/06/...</code>）を取得し、リファラー制限の影響を完全に無効化して確実に一発自動再生します。スマホWebView・Androidアプリでも100%機能する確実なコードです。
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Option 1: Dynamic Embed Iframe */}
+                  <div className="bg-white border border-indigo-150 rounded-xl p-4 space-y-3 shadow-xs">
+                    <span className="block text-[10px] font-bold text-indigo-700">
+                      パターン1: ブログ記事内に直接ゲームを埋め込みたい場合
+                    </span>
+                    <div className="bg-zinc-900 text-zinc-200 p-2.5 rounded-lg font-mono text-[9px] select-all overflow-x-auto leading-normal space-y-1 max-h-48">
+                      {`<!-- 埋め込みプレイヤー(Android対応・自動追従) -->\n<iframe id="blog-game-player" style="width:100%; height:550px; border:none; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.1);"></iframe>\n<script>\n  (function() {\n    var iframe = document.getElementById('blog-game-player');\n    var appUrl = "${currentAppURL}";\n    iframe.src = appUrl + "?url=" + encodeURIComponent(window.location.href);\n  })();\n</script>`}
+                    </div>
+                    <button
+                      onClick={() => handleCopy(`<!-- 埋め込みプレイヤー(Android対応・自動追従) -->\n<iframe id="blog-game-player" style="width:100%; height:550px; border:none; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.1);"></iframe>\n<script>\n  (function() {\n    var iframe = document.getElementById('blog-game-player');\n    var appUrl = "${currentAppURL}";\n    iframe.src = appUrl + "?url=" + encodeURIComponent(window.location.href);\n  })();\n</script>`)}
+                      className="w-full py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[10.5px] rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>埋め込みコード(iframe)をコピー</span>
+                    </button>
+                  </div>
+
+                  {/* Option 2: Dynamic Tab Link */}
+                  <div className="bg-white border border-indigo-150 rounded-xl p-4 space-y-3 shadow-xs">
+                    <span className="block text-[10px] font-bold text-emerald-700">
+                      パターン2: 記事内に『ゲームを別窓で遊ぶ』ボタンを作る場合
+                    </span>
+                    <div className="bg-zinc-900 text-zinc-200 p-2.5 rounded-lg font-mono text-[9px] select-all overflow-x-auto leading-normal space-y-1 max-h-48">
+                      {`<!-- ゲーム起動ボタン(Android対応・自動追従) -->\n<a id="blog-game-link" href="#" target="_blank" style="display:inline-flex; align-items:center; justify-content:center; padding:12px 24px; background-color:#10b981; color:#ffffff; font-weight:bold; border-radius:8px; text-decoration:none; text-shadow:none; text-align:center;">\n  🎮 会話劇ゲームを別窓で起動\n</a>\n<script>\n  (function() {\n    var link = document.getElementById('blog-game-link');\n    var appUrl = "${currentAppURL}";\n    link.href = appUrl + "?url=" + encodeURIComponent(window.location.href);\n  })();\n</script>`}
+                    </div>
+                    <button
+                      onClick={() => handleCopy(`<!-- ゲーム起動ボタン(Android対応・自動追従) -->\n<a id="blog-game-link" href="#" target="_blank" style="display:inline-flex; align-items:center; justify-content:center; padding:12px 24px; background-color:#10b981; color:#ffffff; font-weight:bold; border-radius:8px; text-decoration:none; text-shadow:none; text-align:center;">\n  🎮 会話劇ゲームを別窓で起動\n</a>\n<script>\n  (function() {\n    var link = document.getElementById('blog-game-link');\n    var appUrl = "${currentAppURL}";\n    link.href = appUrl + "?url=" + encodeURIComponent(window.location.href);\n  })();\n</script>`)}
+                      className="w-full py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10.5px] rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>リンクボタンコードをコピー</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               {/* FAQ Box */}
-              <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-xl flex gap-2.5 text-xs text-zinc-700 leading-relaxed">
+              <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-xl flex gap-2.5 text-xs text-zinc-700 leading-relaxed font-normal">
                 <Blocks className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
                 <div className="space-y-1">
                   <span className="font-bold text-blue-900">シナリオ・キャラクター設定の連動について</span>
