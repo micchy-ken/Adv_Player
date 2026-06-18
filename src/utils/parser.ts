@@ -44,10 +44,11 @@ export function parseBlogContent(content: string): ParsedScenario[] {
 
     // Check if it's a tag starting a scenario block
     // Supports *** シーン *** OR 【 シーン 】
-    const startTagMatch = trimmedLine.match(/^(?:\*\*\*|【)\s*(.+?)\s*(?:\*\*\*|】)$/);
+    const startTagMatch = trimmedLine.match(/^(?:\*\*\*|【)\s*(.+?)\s*(?:\*\*\*|】)\s*(.*)$/);
     
     if (startTagMatch) {
-      const tagContent = startTagMatch[1].trim();
+      let tagContent = startTagMatch[1].trim();
+      const extraContent = startTagMatch[2].trim();
       
       if (tagContent === "タイトル") {
         // Skip title lines, already handled
@@ -78,9 +79,20 @@ export function parseBlogContent(content: string): ParsedScenario[] {
         currentItems = [];
       }
 
+      // Check for configId extraction (e.g. `上司と部下「もしも苗字が三井だったら」`)
+      let configId = tagContent;
+      let parsedTitle = tagContent;
+      const bracketMatch = tagContent.match(/^(.+?)「(.*?)」$/);
+      if (bracketMatch) {
+        configId = bracketMatch[1].trim();
+        parsedTitle = configId + "「" + bracketMatch[2].trim() + "」";
+      } else if (extraContent) {
+        parsedTitle = tagContent + " " + extraContent;
+      }
+
       // Start new scenario block
-      currentScenarioId = tagContent;
-      currentTitle = extractedTitle || `会話劇: ${tagContent}`;
+      currentScenarioId = configId; // Map specifically to the config ID base
+      currentTitle = extractedTitle || parsedTitle;
       itemIndex = 0;
       continue;
     }
