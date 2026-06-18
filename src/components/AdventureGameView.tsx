@@ -121,6 +121,56 @@ export default function AdventureGameView({
     return { completed: completedLines, total: totalLines };
   }, [scenario, currentIndex]);
 
+  // Helper to find character config by speaker key or displayName
+  const findCharacterConfig = (speaker: string | undefined) => {
+    if (!speaker) return null;
+    const cleanSpeaker = speaker.trim();
+    // Exact key match
+    if (config.characters[cleanSpeaker]) {
+      return config.characters[cleanSpeaker];
+    }
+    // Match by displayName
+    const foundByDisplayName = Object.values(config.characters).find(
+      c => c.displayName && (c.displayName.includes(cleanSpeaker) || cleanSpeaker.includes(c.displayName))
+    );
+    if (foundByDisplayName) return foundByDisplayName;
+
+    // Fuzzy fallbacks for specific default scenarios
+    const lowerSpeaker = cleanSpeaker.toLowerCase();
+    if (config.id === "上司と部下" || config.id.includes("上司")) {
+      if (lowerSpeaker.includes("上司") || lowerSpeaker.includes("佐藤") || lowerSpeaker.includes("部長") || lowerSpeaker.includes("ボス")) {
+        return Object.values(config.characters).find(c => c.key === "上司" || c.key === "佐藤" || c.position === "left");
+      }
+      if (lowerSpeaker.includes("部下") || lowerSpeaker.includes("鈴木") || lowerSpeaker.includes("社員") || lowerSpeaker.includes("くん")) {
+        return Object.values(config.characters).find(c => c.key === "部下" || c.key === "鈴木" || c.position === "right");
+      }
+    }
+    if (config.id === "ファンタジー遭遇") {
+      if (lowerSpeaker.includes("勇者") || lowerSpeaker.includes("アルス")) {
+        return Object.values(config.characters).find(c => c.key === "勇者" || c.position === "left");
+      }
+      if (lowerSpeaker.includes("魔王") || lowerSpeaker.includes("ルシファー")) {
+        return Object.values(config.characters).find(c => c.key === "魔王" || c.position === "right");
+      }
+    }
+    if (config.id === "幼馴染の図書室") {
+      if (lowerSpeaker.includes("葵") || lowerSpeaker.includes("あおい")) {
+        return Object.values(config.characters).find(c => c.key === "葵" || c.position === "left");
+      }
+      if (lowerSpeaker.includes("颯太") || lowerSpeaker.includes("そうた")) {
+        return Object.values(config.characters).find(c => c.key === "颯太" || c.position === "right");
+      }
+    }
+
+    // Default: find any character whose key matches or is close
+    const foundByKeyMatch = Object.values(config.characters).find(
+      c => c.key.includes(cleanSpeaker) || cleanSpeaker.includes(c.key)
+    );
+    if (foundByKeyMatch) return foundByKeyMatch;
+
+    return null;
+  };
+
   // Play intro sound on start
   useEffect(() => {
     // Trigger on first render of the overlay
@@ -169,7 +219,7 @@ export default function AdventureGameView({
       setIsTyping(false);
 
       // Append to backlog
-      const speakerData = currentStep.speaker ? config.characters[currentStep.speaker] : null;
+      const speakerData = findCharacterConfig(currentStep.speaker);
       setBacklog(prev => [
         ...prev,
         {
@@ -204,7 +254,7 @@ export default function AdventureGameView({
         setIsTyping(false);
 
         // Record to backlog
-        const speakerData = currentStep.speaker ? config.characters[currentStep.speaker] : null;
+        const speakerData = findCharacterConfig(currentStep.speaker);
         setBacklog(prev => [
           ...prev,
           {
@@ -251,7 +301,7 @@ export default function AdventureGameView({
       setTypedText(currentStep.text || '');
       setIsTyping(false);
 
-      const speakerData = currentStep.speaker ? config.characters[currentStep.speaker] : null;
+      const speakerData = findCharacterConfig(currentStep.speaker);
       setBacklog(prev => [
         ...prev,
         {
@@ -286,11 +336,12 @@ export default function AdventureGameView({
 
   // Determine active speaker highlight
   const activeSpeakerKey = currentStep?.speaker;
+  const resolvedSpeakerConfig = findCharacterConfig(activeSpeakerKey);
 
   // Render character entries
   const renderedCharacters = useMemo(() => {
     return Object.values(config.characters).map((charConfig) => {
-      const isSpeaking = activeSpeakerKey === charConfig.key;
+      const isSpeaking = resolvedSpeakerConfig?.key === charConfig.key;
       const existsOnStage = currentStep?.type === 'dialogue'; // hide or grey out when click waits
       const isLeft = charConfig.position === 'left';
 
@@ -336,9 +387,6 @@ export default function AdventureGameView({
       );
     });
   }, [config, activeSpeakerKey, currentStep]);
-
-  // Find theme colors for badge borders
-  const resolvedSpeakerConfig = activeSpeakerKey ? config.characters[activeSpeakerKey] : null;
 
   return (
     <div

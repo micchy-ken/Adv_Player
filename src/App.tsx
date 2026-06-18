@@ -233,8 +233,15 @@ export default function App() {
     setActivePlayScenario(parsed);
   };
 
-  // Find configuration for active scenario
-  const activeConfig = activePlayScenario ? scenarios[activePlayScenario.id] : null;
+  // Find configuration for active scenario with fuzzy matching fallback
+  const activeConfig = activePlayScenario 
+    ? (scenarios[activePlayScenario.id] || 
+       Object.values(scenarios).find(s => 
+         activePlayScenario.id.toLowerCase().includes(s.id.toLowerCase()) || 
+         s.id.toLowerCase().includes(activePlayScenario.id.toLowerCase())
+       )
+      ) 
+    : null;
 
   // Render a safety default config in case blogger used a scenario keyword they haven't configured yet
   const resolvedConfig: ScenarioConfig = activeConfig || {

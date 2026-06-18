@@ -43,8 +43,8 @@ export function parseBlogContent(content: string): ParsedScenario[] {
     const trimmedLine = rawLine.trim();
 
     // Check if it's a tag starting a scenario block
-    // Supports *** シーン *** OR 【 シーン 】
-    const startTagMatch = trimmedLine.match(/^(?:\*\*\*|【)\s*(.+?)\s*(?:\*\*\*|】)\s*(.*)$/);
+    // Supports *** シーン ***, 【 シーン 】, [ シーン ], ［ シーン ］
+    const startTagMatch = trimmedLine.match(/^(?:\*\*\*|【|［|\[)\s*(.+?)\s*(?:\*\*\*|】|］|\])\s*(.*)$/);
     
     if (startTagMatch) {
       let tagContent = startTagMatch[1].trim();
