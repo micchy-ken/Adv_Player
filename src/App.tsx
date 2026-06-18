@@ -247,15 +247,39 @@ export default function App() {
     setActivePlayScenario(parsed);
   };
 
-  // Find configuration for active scenario with fuzzy matching fallback
-  const activeConfig = activePlayScenario 
-    ? (scenarios[activePlayScenario.id] || 
-       Object.values(scenarios).find((s: ScenarioConfig) => 
-         activePlayScenario.id.toLowerCase().includes(s.id.toLowerCase()) || 
-         s.id.toLowerCase().includes(activePlayScenario.id.toLowerCase())
-       )
-      ) 
-    : null;
+  // Find configuration for active scenario with fuzzy matching & translation fallback support
+  const activeConfig = (() => {
+    if (!activePlayScenario) return null;
+    const parsedId = activePlayScenario.id;
+    const cleanIdLower = parsedId.toLowerCase().trim();
+
+    // 1. Direct match
+    if (scenarios[parsedId]) return scenarios[parsedId];
+
+    // 2. Fuzzy match on ID or name
+    const fuzzyMatch = Object.values(scenarios).find((s: ScenarioConfig) => 
+      cleanIdLower.includes(s.id.toLowerCase()) || 
+      s.id.toLowerCase().includes(cleanIdLower) ||
+      cleanIdLower.includes(s.name.toLowerCase()) ||
+      s.name.toLowerCase().includes(cleanIdLower)
+    );
+    if (fuzzyMatch) return fuzzyMatch;
+
+    // 3. Multilingual Translation keywords mapping for standard built-ins
+    const standardMaps: Record<string, string[]> = {
+      "上司と部下": ["boss", "subordinate", "office", "report", "employee", "supervisor", "staff", "manager", "上司", "部下", "業務報告"],
+      "ファンタジー遭遇": ["fantasy", "encounter", "ruins", "hero", "demon", "clash", "confrontation", "ファンタジー", "遭遇", "遺跡", "勇者", "魔王"],
+      "幼馴染の図書室": ["childhood", "friend", "library", "school", "afterschool", "after school", "aoi", "sota", "幼馴染", "図書室", "放課後", "葵", "颯太"]
+    };
+
+    for (const [key, keywords] of Object.entries(standardMaps)) {
+      if (keywords.some(keyword => cleanIdLower.includes(keyword))) {
+        if (scenarios[key]) return scenarios[key];
+      }
+    }
+
+    return null;
+  })();
 
   // Render a safety default config in case blogger used a scenario keyword they haven't configured yet
   const resolvedConfig: ScenarioConfig = activeConfig || {

@@ -138,30 +138,71 @@ export default function AdventureGameView({
     );
     if (foundByDisplayName) return foundByDisplayName;
 
-    // Fuzzy fallbacks for specific default scenarios
+    // Fuzzy fallbacks for specific default scenarios (including full English translation support)
     const lowerSpeaker = cleanSpeaker.toLowerCase();
-    if (config.id === "上司と部下" || config.id.includes("上司")) {
-      if (lowerSpeaker.includes("上司") || lowerSpeaker.includes("佐藤") || lowerSpeaker.includes("部長") || lowerSpeaker.includes("ボス")) {
-        return Object.values(config.characters).find(c => c.key === "上司" || c.key === "佐藤" || c.position === "left");
+    if (config.id === "上司と部下" || config.id.includes("上司") || config.id.includes("boss") || config.id.includes("subordinate")) {
+      if (
+        lowerSpeaker.includes("上司") || 
+        lowerSpeaker.includes("佐藤") || 
+        lowerSpeaker.includes("部長") || 
+        lowerSpeaker.includes("ボス") || 
+        lowerSpeaker.includes("boss") || 
+        lowerSpeaker.includes("sato") || 
+        lowerSpeaker.includes("manager") || 
+        lowerSpeaker.includes("supervisor")
+      ) {
+        return Object.values(config.characters).find(c => c.key === "上司" || c.key === "佐藤" || c.position === "left") || null;
       }
-      if (lowerSpeaker.includes("部下") || lowerSpeaker.includes("鈴木") || lowerSpeaker.includes("社員") || lowerSpeaker.includes("くん")) {
-        return Object.values(config.characters).find(c => c.key === "部下" || c.key === "鈴木" || c.position === "right");
+      if (
+        lowerSpeaker.includes("部下") || 
+        lowerSpeaker.includes("鈴木") || 
+        lowerSpeaker.includes("社員") || 
+        lowerSpeaker.includes("くん") || 
+        lowerSpeaker.includes("subordinate") || 
+        lowerSpeaker.includes("suzuki") || 
+        lowerSpeaker.includes("employee") || 
+        lowerSpeaker.includes("staff") || 
+        lowerSpeaker.includes("junior")
+      ) {
+        return Object.values(config.characters).find(c => c.key === "部下" || c.key === "鈴木" || c.position === "right") || null;
       }
     }
-    if (config.id === "ファンタジー遭遇") {
-      if (lowerSpeaker.includes("勇者") || lowerSpeaker.includes("アルス")) {
-        return Object.values(config.characters).find(c => c.key === "勇者" || c.position === "left");
+    if (config.id === "ファンタジー遭遇" || config.id.includes("fantasy") || config.id.includes("encounter")) {
+      if (
+        lowerSpeaker.includes("勇者") || 
+        lowerSpeaker.includes("アルス") || 
+        lowerSpeaker.includes("hero") || 
+        lowerSpeaker.includes("arus") || 
+        lowerSpeaker.includes("arthur")
+      ) {
+        return Object.values(config.characters).find(c => c.key === "勇者" || c.position === "left") || null;
       }
-      if (lowerSpeaker.includes("魔王") || lowerSpeaker.includes("ルシファー")) {
-        return Object.values(config.characters).find(c => c.key === "魔王" || c.position === "right");
+      if (
+        lowerSpeaker.includes("魔王") || 
+        lowerSpeaker.includes("ルシファー") || 
+        lowerSpeaker.includes("demon") || 
+        lowerSpeaker.includes("lucifer") || 
+        lowerSpeaker.includes("satan") || 
+        lowerSpeaker.includes("devil")
+      ) {
+        return Object.values(config.characters).find(c => c.key === "魔王" || c.position === "right") || null;
       }
     }
-    if (config.id === "幼馴染の図書室") {
-      if (lowerSpeaker.includes("葵") || lowerSpeaker.includes("あおい")) {
-        return Object.values(config.characters).find(c => c.key === "葵" || c.position === "left");
+    if (config.id === "幼馴染の図書室" || config.id.includes("childhood") || config.id.includes("friend") || config.id.includes("library")) {
+      if (
+        lowerSpeaker.includes("葵") || 
+        lowerSpeaker.includes("あおい") || 
+        lowerSpeaker.includes("aoi")
+      ) {
+        return Object.values(config.characters).find(c => c.key === "葵" || c.position === "left") || null;
       }
-      if (lowerSpeaker.includes("颯太") || lowerSpeaker.includes("そうた")) {
-        return Object.values(config.characters).find(c => c.key === "颯太" || c.position === "right");
+      if (
+        lowerSpeaker.includes("颯太") || 
+        lowerSpeaker.includes("そうた") || 
+        lowerSpeaker.includes("sota") || 
+        lowerSpeaker.includes("souta")
+      ) {
+        return Object.values(config.characters).find(c => c.key === "颯太" || c.position === "right") || null;
       }
     }
 
