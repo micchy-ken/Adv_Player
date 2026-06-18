@@ -4,6 +4,8 @@
  */
 
 import { ScenarioConfig, BlogItem } from '../types';
+import FemaleBossUrl from '../assets/images/anime_female_boss_1781746518604.jpg';
+import MaleSubordinateUrl from '../assets/images/anime_male_subordinate_1781746532145.jpg';
 
 export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
   "上司と部下": {
@@ -15,14 +17,14 @@ export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
       "上司": {
         key: "上司",
         displayName: "上司",
-        avatarUrl: "/src/assets/images/anime_female_boss_1781746518604.jpg",
+        avatarUrl: FemaleBossUrl,
         color: "#d97706", // amber-600
         position: "left"
       },
       "部下": {
         key: "部下",
         displayName: "部下",
-        avatarUrl: "/src/assets/images/anime_male_subordinate_1781746532145.jpg",
+        avatarUrl: MaleSubordinateUrl,
         color: "#2563eb", // blue-600
         position: "right"
       }

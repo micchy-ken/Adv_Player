@@ -74,59 +74,63 @@ export default function App() {
         setIsLoadingUrl(true);
         setUrlFetchError(null);
         try {
-          // Use a public CORS proxy helper for user simplicity
-          // Note: Add cache busting stamp to ensure we get latest
-          const corsProxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(blogUrlParam)}&_t=${Date.now()}`;
-          const response = await fetch(corsProxyUrl);
-          if (response.ok) {
-            const data = await response.json();
-            const htmlContent = data.contents;
-            // Extract core text or use straight content
-            if (htmlContent) {
-              const parser = new DOMParser();
-              const doc = parser.parseFromString(htmlContent, 'text/html');
-              // Remove script and styles so they don't corrupt text
-              Array.from(doc.querySelectorAll('script, style, noscript, iframe, link, meta')).forEach(el => el.remove());
-              
-              // Try textContent first, fallback to regex
-              let cleanText = doc.body ? doc.body.textContent || "" : htmlContent.replace(/<[^>]*>/g, '\n');
-              // Convert non-breaking spaces back
-              cleanText = cleanText.replace(/&nbsp;/g, ' ').replace(/\u00A0/g, ' ');
-              
-              const parsed = parseBlogContent(cleanText);
-              if (parsed && parsed.length > 0) {
-                setActivePlayScenario(parsed[0]);
-                setIsLoadingUrl(false);
-                return;
-              } else {
-                console.warn("Adv_Player: No valid scenarios found in fetched blog content.", cleanText.substring(0, 500));
-                setUrlFetchError("ブログの読み込みに成功しましたが、記事内にシナリオタグ (【タイトル】 など) が見つかりませんでした。");
-              }
+          // First, try direct fetch. This works if they are on same origin or CORS is allowed.
+          const directRes = await fetch(blogUrlParam);
+          if (directRes.ok) {
+            const htmlContent = await directRes.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlContent, 'text/html');
+            Array.from(doc.querySelectorAll('script, style, noscript, iframe, link, meta')).forEach(el => el.remove());
+            let cleanText = doc.body ? doc.body.textContent || "" : htmlContent.replace(/<[^>]*>/g, '\n');
+            cleanText = cleanText.replace(/&nbsp;/g, ' ').replace(/\u00A0/g, ' ');
+
+            const parsed = parseBlogContent(cleanText);
+            if (parsed && parsed.length > 0) {
+              setActivePlayScenario(parsed[0]);
+              setIsLoadingUrl(false);
+              return;
             } else {
-               setUrlFetchError("ブログのコンテンツが空でした。URLを確認してください。");
+              console.warn("Direct fetch found no scenarios.");
+              setUrlFetchError("直接読み込んだ記事内にシナリオタグが見つかりませんでした。");
             }
           } else {
-             setUrlFetchError(`プロキシサーバーエラー (${response.status})。直接読み込みを試みます...`);
-             throw new Error("Proxy error");
+             throw new Error("Direct fetch failed: " + directRes.status);
           }
         } catch (e) {
-          console.error("CORS proxy fetch error, attempting direct fetch fallback:", e);
+          console.warn("Direct fetch failed, attempting proxy fallback:", e);
           try {
-            const directRes = await fetch(blogUrlParam);
-            if (directRes.ok) {
-              const directText = await directRes.text();
-              const parsed = parseBlogContent(directText.replace(/<[^>]*>/g, '\n'));
-              if (parsed && parsed.length > 0) {
-                setActivePlayScenario(parsed[0]);
+            // Use a public CORS proxy helper for user simplicity. 
+            // Removed the timestamp cache buster to significantly speed up allorigins.
+            const corsProxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(blogUrlParam)}`;
+            const response = await fetch(corsProxyUrl);
+            if (response.ok) {
+              const data = await response.json();
+              const htmlContent = data.contents;
+              if (htmlContent) {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(htmlContent, 'text/html');
+                Array.from(doc.querySelectorAll('script, style, noscript, iframe, link, meta')).forEach(el => el.remove());
+                
+                let cleanText = doc.body ? doc.body.textContent || "" : htmlContent.replace(/<[^>]*>/g, '\n');
+                cleanText = cleanText.replace(/&nbsp;/g, ' ').replace(/\u00A0/g, ' ');
+                
+                const parsed = parseBlogContent(cleanText);
+                if (parsed && parsed.length > 0) {
+                  setActivePlayScenario(parsed[0]);
+                  setIsLoadingUrl(false);
+                  return;
+                } else {
+                  setUrlFetchError("ブログの読み込みに成功しましたが、記事内にシナリオタグ (【タイトル】 など) が見つかりませんでした。");
+                }
               } else {
-                 setUrlFetchError("直接読み込み成功: 記事内にシナリオタグが見つかりませんでした。");
+                 setUrlFetchError("ブログのコンテンツが空でした。URLを確認してください。");
               }
             } else {
-               setUrlFetchError(`直接読み込みも失敗しました (${directRes.status})。CORS制限またはURLが無効です。`);
+               setUrlFetchError(`プロキシサーバーエラー (${response.status})。ブログの読み込みに失敗しました。`);
             }
           } catch (err) {
-            console.error("Direct fetch failed due to CORS restrictions:", err);
-            setUrlFetchError("ブログの読み込みに失敗しました。CORS制限またはURLが無効な可能性があります。");
+            console.error("Proxy fetch also failed:", err);
+            setUrlFetchError("ブログの読み込みに完全に失敗しました。CORS制限またはURLが無効な可能性があります。");
           }
         }
         setIsLoadingUrl(false);

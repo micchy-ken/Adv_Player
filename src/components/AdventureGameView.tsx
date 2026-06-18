@@ -93,6 +93,7 @@ export default function AdventureGameView({
   const [isAutoplay, setIsAutoplay] = useState(false);
   const [isSkip, setIsSkip] = useState(false);
   const [showLog, setShowLog] = useState(false);
+  const [isEnded, setIsEnded] = useState(false);
 
   const typewriterTimer = useRef<NodeJS.Timeout | null>(null);
   const audioSynth = useMemo(() => new RetroAudioSynth(), []);
@@ -270,6 +271,7 @@ export default function AdventureGameView({
       // Reached physical end of dialogue events
       setIsAutoplay(false);
       setIsSkip(false);
+      setIsEnded(true);
     }
   };
 
@@ -414,17 +416,6 @@ export default function AdventureGameView({
 
         {/* Center / Narrator Slot or Info Indicator */}
         <div className="w-1/3 flex justify-center pb-12 self-center">
-          {currentStep?.type === 'click-wait' && (
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: [0.95, 1.05, 0.95], opacity: 1 }}
-              transition={{ repeat: Infinity, duration: 1.5 }}
-              className="bg-black/70 border border-white/20 px-4 py-2 rounded-full text-xs font-bold text-yellow-400 flex items-center gap-2 shadow-2xl shadow-yellow-500/10 backdrop-blur"
-            >
-              <CornerDownLeft className="w-4 h-4 animate-bounce" />
-              <span>ココをクリックして進む</span>
-            </motion.div>
-          )}
         </div>
 
         {/* Right Character Slot */}
@@ -627,6 +618,33 @@ export default function AdventureGameView({
           </motion.div>
         )}
       </AnimatePresence>
+      {/* Ending Overlay */}
+      <AnimatePresence>
+        {isEnded && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="absolute inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm cursor-pointer"
+          >
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="text-center space-y-4"
+            >
+              <h2 className="text-3xl sm:text-5xl font-black text-white tracking-widest uppercase">
+                SCENE END
+              </h2>
+              <p className="text-zinc-400 text-sm animate-pulse">
+                画面をクリックして閉じる
+              </p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 }
