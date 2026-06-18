@@ -14,50 +14,128 @@ async function startServer() {
       return res.status(400).json({ error: "URL query parameter is required." });
     }
 
+    // Decoding and normalizing
     try {
-      // Decode and normalize URL
       targetUrl = decodeURIComponent(targetUrl);
-      
-      // Prevent s.ameblo.jp (mobile layout with limited text) issues
-      if (targetUrl.includes("s.ameblo.jp")) {
-        targetUrl = targetUrl.replace("s.ameblo.jp", "ameblo.jp");
-      }
+    } catch (e) {
+      // Ignored if already decoded
+    }
 
-      // Clean typical Ameba affiliate, tracker, or layout override parameters
+    if (targetUrl.includes("s.ameblo.jp")) {
+      targetUrl = targetUrl.replace("s.ameblo.jp", "ameblo.jp");
+    }
+
+    // Clean typical Ameba affiliate, tracker, or layout override parameters
+    try {
       const urlObj = new URL(targetUrl);
       const keysToRemove = ["frm_id", "device_id", "amba", "gamp", "amp", "page", "device"];
       keysToRemove.forEach(k => urlObj.searchParams.delete(k));
-      const cleanUrl = urlObj.toString();
-
-      console.log(`[Proxy] Fetching target: ${cleanUrl}`);
-
-      // We explicitly fetch with a desktop user-agent.
-      // This forces Ameba Blog to serve the complete static PC markup rather than mobile SPA fallbacks
-      const response = await fetch(cleanUrl, {
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-          "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-          "Accept-Language": "ja,en-US;q=0.7,en;q=0.3",
-          "Cache-Control": "no-cache",
-          "Pragma": "no-cache"
-        },
-        method: "GET"
-      });
-
-      if (!response.ok) {
-        return res.status(response.status).json({ error: `Target server responded with status: ${response.status}` });
-      }
-
-      const htmlContent = await response.text();
-      
-      // Set appropriate response headers and return html
-      res.setHeader("Content-Type", "text/plain; charset=utf-8");
-      return res.send(htmlContent);
-      
-    } catch (e: any) {
-      console.error("[Proxy Error]:", e);
-      return res.status(500).json({ error: `Proxy failed to fetch target: ${e.message || e}` });
+      targetUrl = urlObj.toString();
+    } catch (e) {
+      console.warn("Could not parse target URL object:", e);
     }
+
+    const headers = {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+      "Accept-Language": "ja,en-US;q=0.7,en;q=0.3",
+      "Cache-Control": "no-cache",
+      "Pragma": "no-cache"
+    };
+
+    const fetchWithTimeout = async (url: string, options: any, timeoutMs = 4000) => {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const response = await fetch(url, {
+          ...options,
+          signal: controller.signal,
+        });
+        clearTimeout(id);
+        return response;
+      } catch (err) {
+        clearTimeout(id);
+        throw err;
+      }
+    };
+
+    console.log(`[Proxy] Resilient fetch chain initiated for: ${targetUrl}`);
+
+    // Strategy 1: Direct fetch with Desktop User-Agent
+    try {
+      console.log("[Proxy] Strategy 1: Direct Fetch");
+      const response = await fetchWithTimeout(targetUrl, { headers, method: "GET" }, 4000);
+      if (response.ok) {
+        const html = await response.text();
+        if (html && html.trim().length > 500) {
+          console.log("[Proxy] Strategy 1 Succeeded!");
+          res.setHeader("Content-Type", "text/plain; charset=utf-8");
+          return res.send(html);
+        }
+      }
+      console.warn(`[Proxy] Strategy 1 direct fetch returned status: ${response.status}`);
+    } catch (e: any) {
+      console.warn("[Proxy] Strategy 1 Failed or Timed out:", e.message || e);
+    }
+
+    // Strategy 2: Fetch via corsproxy.io on server-side (Bypasses Google Cloud block, enforces desktop agent)
+    try {
+      console.log("[Proxy] Strategy 2: corsproxy.io Fetch");
+      const corsProxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(targetUrl)}`;
+      const response = await fetchWithTimeout(corsProxyUrl, { headers, method: "GET" }, 4000);
+      if (response.ok) {
+        const html = await response.text();
+        if (html && html.trim().length > 500) {
+          console.log("[Proxy] Strategy 2 Succeeded!");
+          res.setHeader("Content-Type", "text/plain; charset=utf-8");
+          return res.send(html);
+        }
+      }
+      console.warn(`[Proxy] Strategy 2 returned status: ${response.status}`);
+    } catch (e: any) {
+      console.warn("[Proxy] Strategy 2 Failed or Timed out:", e.message || e);
+    }
+
+    // Strategy 3: Fetch via api.allorigins.win on server-side
+    try {
+      console.log("[Proxy] Strategy 3: api.allorigins.win Fetch");
+      const allOriginsUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}&_=${Date.now()}`;
+      const response = await fetchWithTimeout(allOriginsUrl, { method: "GET" }, 4500);
+      if (response.ok) {
+        const data = await response.json();
+        const html = data?.contents;
+        if (html && html.trim().length > 500) {
+          console.log("[Proxy] Strategy 3 Succeeded!");
+          res.setHeader("Content-Type", "text/plain; charset=utf-8");
+          return res.send(html);
+        }
+      }
+      console.warn(`[Proxy] Strategy 3 returned status: ${response.status}`);
+    } catch (e: any) {
+      console.warn("[Proxy] Strategy 3 Failed or Timed out:", e.message || e);
+    }
+
+    // Strategy 4: Fetch via codetabs.com on server-side
+    try {
+      console.log("[Proxy] Strategy 4: codetabs.com Fetch");
+      const codetabsUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`;
+      const response = await fetchWithTimeout(codetabsUrl, { headers, method: "GET" }, 4000);
+      if (response.ok) {
+        const html = await response.text();
+        if (html && html.trim().length > 500) {
+          console.log("[Proxy] Strategy 4 Succeeded!");
+          res.setHeader("Content-Type", "text/plain; charset=utf-8");
+          return res.send(html);
+        }
+      }
+      console.warn(`[Proxy] Strategy 4 returned status: ${response.status}`);
+    } catch (e: any) {
+      console.warn("[Proxy] Strategy 4 Failed or Timed out:", e.message || e);
+    }
+
+    // If all strategies fail, return structured error
+    console.error("[Proxy Error]: All 4 resilient strategies failed to retrieve blog content.");
+    return res.status(502).json({ error: "全てのプロキシ試行に失敗しました。ブログサーバーにアクセスできないか、ブロックされています。" });
   });
 
   // 2. Vite middleware setup
