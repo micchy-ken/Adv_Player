@@ -24,7 +24,7 @@ export function parseBlogContent(content: string): ParsedScenario[] {
   let extractedTitle = "";
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
-    if ((line === "***タイトル***" || line === "【タイトル】") && i + 1 < lines.length) {
+    if (line.match(/^\s*(?:\*\*\*|【|［|\[)\s*タイトル\s*(?:\*\*\*|】|］|\])/) && i + 1 < lines.length) {
       // Find next non-empty line
       let j = i + 1;
       while (j < lines.length && !lines[j].trim()) {
@@ -37,16 +37,28 @@ export function parseBlogContent(content: string): ParsedScenario[] {
     }
   }
 
+  let titleSeen = extractedTitle === "" ? true : false;
+
   // Second pass: Parse scenarios blocks
   for (let i = 0; i < lines.length; i++) {
     // Remove invisible characters that often get copied on mobile/Ameba
     const rawLine = lines[i].replace(/[\u200B-\u200D\uFEFF]/g, '');
     const trimmedLine = rawLine.trim();
 
+    const isTitleTag = trimmedLine.match(/^\s*(?:\*\*\*|【|［|\[)\s*タイトル\s*(?:\*\*\*|】|］|\])/);
+    if (isTitleTag) {
+      titleSeen = true;
+      continue;
+    }
+
+    if (!titleSeen) {
+      continue;
+    }
+
     // Check if it's a tag starting a scenario block
     // Supports *** シーン ***, 【 シーン 】, [ シーン ], ［ シーン ］
-    // Look for the bracket pattern anywhere in the line, anchoring loosely.
-    const startTagMatch = trimmedLine.match(/(?:\*\*\*|【|［|\[)\s*([^\*\n【】［］\[\]]+?)\s*(?:\*\*\*|】|］|\])\s*(.*)$/);
+    // Look for the bracket pattern at the start of the line
+    const startTagMatch = trimmedLine.match(/^\s*(?:\*\*\*|【|［|\[)\s*([^\*\n【】［］\[\]]+?)\s*(?:\*\*\*|】|］|\])\s*(.*)$/);
     
     if (startTagMatch) {
       let tagContent = startTagMatch[1].trim();
