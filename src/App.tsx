@@ -123,10 +123,12 @@ export default function App() {
                 let cleanText = "";
                 if (doc.body) {
                   let html = doc.body.innerHTML;
-                  html = html.replace(/<br\s*\/?>/gi, '\n').replace(/<\/(p|div|h[1-6]|li)>/gi, '\n').replace(/<[^>]+>/g, '');
-                  const temp = document.createElement('textarea');
-                  temp.innerHTML = html;
-                  cleanText = temp.value;
+                  // Replace tags that usually mean a new line
+                  html = html.replace(/<br\s*\/?>/gi, '\n').replace(/<\/(p|div|h[1-6]|li|tr)>/gi, '\n');
+                  // Parse again to easily extract text and decode HTML entities while preserving \n
+                  const parser2 = new DOMParser();
+                  const doc2 = parser2.parseFromString(html, 'text/html');
+                  cleanText = doc2.body.textContent || '';
                 } else {
                   cleanText = htmlContent.replace(/<[^>]*>/g, '\n');
                 }

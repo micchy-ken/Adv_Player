@@ -39,12 +39,14 @@ export function parseBlogContent(content: string): ParsedScenario[] {
 
   // Second pass: Parse scenarios blocks
   for (let i = 0; i < lines.length; i++) {
-    const rawLine = lines[i];
+    // Remove invisible characters that often get copied on mobile/Ameba
+    const rawLine = lines[i].replace(/[\u200B-\u200D\uFEFF]/g, '');
     const trimmedLine = rawLine.trim();
 
     // Check if it's a tag starting a scenario block
     // Supports *** シーン ***, 【 シーン 】, [ シーン ], ［ シーン ］
-    const startTagMatch = trimmedLine.match(/^(?:\*\*\*|【|［|\[)\s*(.+?)\s*(?:\*\*\*|】|］|\])\s*(.*)$/);
+    // Look for the bracket pattern anywhere in the line, anchoring loosely.
+    const startTagMatch = trimmedLine.match(/(?:\*\*\*|【|［|\[)\s*([^\*\n【】［］\[\]]+?)\s*(?:\*\*\*|】|］|\])\s*(.*)$/);
     
     if (startTagMatch) {
       let tagContent = startTagMatch[1].trim();

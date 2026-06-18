@@ -21,23 +21,9 @@ export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
         color: "#d97706", // amber-600
         position: "left"
       },
-      "佐藤": {
-        key: "佐藤",
-        displayName: "佐藤部長",
-        avatarUrl: FemaleBossUrl,
-        color: "#d97706", // amber-600
-        position: "left"
-      },
       "部下": {
         key: "部下",
         displayName: "部下",
-        avatarUrl: MaleSubordinateUrl,
-        color: "#2563eb", // blue-600
-        position: "right"
-      },
-      "鈴木": {
-        key: "鈴木",
-        displayName: "鈴木くん",
         avatarUrl: MaleSubordinateUrl,
         color: "#2563eb", // blue-600
         position: "right"
