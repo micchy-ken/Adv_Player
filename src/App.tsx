@@ -73,11 +73,39 @@ const extractTextFromHtml = (htmlContent: string) => {
 
   // Re-create the parser using the resolved HTML (either JSON extracted body, or original html)
   const finalDoc = parser.parseFromString(htmlToParse, 'text/html');
-  Array.from(finalDoc.querySelectorAll('script, style, noscript, iframe, link, meta')).forEach(el => el.remove());
+  
+  // Clean heavy non-blog content elements first (such as headers, footers, navigation, sidebars)
+  Array.from(finalDoc.querySelectorAll('script, style, noscript, iframe, link, meta, header, footer, nav, aside, .sidebar, .blog-sidebar, .comment-box, .profile-provider')).forEach(el => el.remove());
+  
+  // BLOG SPECIFIC CONTENT EXTRACTION: Extract only from actual ARTICLE content tags if found to prevent sidebar keyword clutter from blocking the parser!
+  const contentSelectors = [
+    '.entry-content',           // Hatena Blog & Ameblo Article Content
+    '#entryBody',               // Ameblo PC
+    '.entry-body',              // Hatena Blog & Livedoor
+    '.article-body',            // Common Japanese Blogs
+    'article',                  // HTML5 Article tag
+    '[itemprop="articleBody"]', // SEO Schema articleBody
+    '.main-entry',              // Livedoor & others
+    '.post-body',               // Blogger & others
+    '.entryContent'             // FC2 & others
+  ];
+
+  let targetElement: Element | null = null;
+  for (const selector of contentSelectors) {
+    const found = finalDoc.querySelector(selector);
+    if (found) {
+      targetElement = found;
+      console.log(`Adv_Player: Targeted refined content container with selector: "${selector}"`);
+      break;
+    }
+  }
+
+  // Fallback to body if no refined content container is found
+  const rootElement = targetElement || finalDoc.body;
   
   let cleanText = "";
-  if (finalDoc.body) {
-    let html = finalDoc.body.innerHTML;
+  if (rootElement) {
+    let html = rootElement.innerHTML;
     // Replace text-breaking tags with actual newlines to preserve visual structure
     html = html.replace(/<br[^>]*>/gi, '\n');
     html = html.replace(/<\/?(div|p|h[1-6]|li|tr|article|section|blockquote)[^>]*>/gi, '\n');
@@ -198,8 +226,42 @@ export default function App() {
 
         addLog(`キャッシュバスター（クエリ末尾のタイムスタンプ）を追加: ${cleanFetchUrl}`);
 
+        const tryParsingContent = (html: string, sourceName: string): boolean => {
+          if (!html || html.trim().length === 0) {
+            addLog(`[${sourceName}] 警告: 取得したHTMLが空でした。`);
+            return false;
+          }
+          
+          const displaySlice = html.substring(0, 150).replace(/\s+/g, ' ');
+          addLog(`[${sourceName}] HTML取得成功。サイズ: ${html.length}文字。先頭部分: "${displaySlice}..."`);
+          
+          // Detect router blocks, typical carrier filtering or local block pages served as status 200
+          if (html.includes('アクセス制限') || html.includes('アクセスが制限') || html.includes('Blocked') || html.includes('Forbidden') || html.includes('403 Forbidden') || html.includes('接続制限')) {
+            addLog(`[${sourceName}] 【警告】取得したHTMLにアクセス制限やエラー文言が含まれています。CORS規制やセキュリティ遮断の可能性があります。`);
+          }
+
+          addLog(`[${sourceName}] DOM本文抽出処理(extractTextFromHtml)を実行中...`);
+          const cleanText = extractTextFromHtml(html);
+          
+          const textSlice = cleanText.substring(0, 150).replace(/\s+/g, ' ');
+          addLog(`[${sourceName}] 本文抽出完了。抽出サイズ: ${cleanText.length}文字。抽出先頭: "${textSlice}..."`);
+          
+          addLog(`[${sourceName}] 本文からシナリオタグ（【タイトル】、シーン切り替えなど）を検索・パース中...`);
+          const parsed = parseBlogContent(cleanText);
+          
+          if (parsed && parsed.length > 0) {
+            addLog(`[${sourceName}] 大成功!!! ${parsed.length}つのシナリオを検出し、パースに成功しました。ゲームを起動します！`);
+            setActivePlayScenario(parsed[0]);
+            setIsLoadingUrl(false);
+            return true;
+          } else {
+            addLog(`[${sourceName}] パース警告: 抽出した本文テキスト内に【タイトル】などのシナリオ構文が見つかりませんでした。`);
+            return false;
+          }
+        };
+
+        // --- PHASE 1: METHOD 1 (Server-side PC Proxy) ---
         try {
-          // 1. Primary Method: Fetch using our dedicated server-side PC-User-Agent Proxy (JSON API type).
           const localProxyUrl = `/api/proxy?url=${encodeURIComponent(cleanFetchUrl)}`;
           addLog(`[方法1] サーバーサイド PC User-Agent プロキシを呼び出します...`);
           addLog(`プロキシ転送先エンドポイント: ${localProxyUrl}`);
@@ -209,8 +271,6 @@ export default function App() {
           
           if (response.ok) {
             const data = await response.json();
-            
-            // Merge backend side diagnostic logs
             if (data.logs && Array.isArray(data.logs)) {
               data.logs.forEach((backendLog: string) => {
                 addLog(`[Backend] ${backendLog}`);
@@ -218,114 +278,93 @@ export default function App() {
             }
 
             if (data.success && data.html) {
-              addLog(`結果: サーバー側プロキシでのHTML取得に成功しました。文字数: ${data.html.length}文字。`);
-              addLog(`DOMParserを利用してHTMLからタグ、スクリプトを除去し、テキスト本文を抽出します...`);
-              
-              const cleanText = extractTextFromHtml(data.html);
-              addLog(`本文テキストの抽出に成功しました (文字数: ${cleanText.length}文字)。`);
-              
-              addLog(`本文からシナリオタグ（【タイトル】、シーン切り替えなど）を検索・パース中...`);
-              const parsed = parseBlogContent(cleanText);
-              
-              if (parsed && parsed.length > 0) {
-                addLog(`大成功!!! ${parsed.length}つのシナリオを検出し、パースに成功しました。ゲームを起動します。`);
-                setActivePlayScenario(parsed[0]);
-                setIsLoadingUrl(false);
-                return;
-              } else {
-                addLog(`警告：HTMLの取得・本文抽出には成功しましたが、抽出テキスト内に【タイトル】などのシナリオ構文が見つかりませんでした。`);
-                addLog(`抽出された先頭150文字: "${cleanText.substring(0, 150)}..."`);
-                addLog(`ブログに記述されているタグ（【タイトル】や【シーン名】など）が正しく全角で記述されているかご確認ください。`);
-              }
+              if (tryParsingContent(data.html, "方法1:ローカルプロキシ")) return;
             } else {
-              addLog(`プロキシ呼び出し警告: プロキシは応答しましたが、処理ステータスが「失敗」です。理由: ${data.error || '不明'}`);
+              addLog(`サーバープロキシ警告: 処理ステータスが「失敗」です。理由: ${data.error || '不明'}`);
             }
           } else {
-            addLog(`サーバープロキシ接続エラー: レスポンスが正常(200-299)ではありませんでした。`);
-            try {
-              const errBody = await response.json();
-              if (errBody.logs) {
-                errBody.logs.forEach((backendLog: string) => {
-                  addLog(`[Backend-Err] ${backendLog}`);
-                });
-              }
-            } catch(e) {}
+            addLog(`ローカルプロバイダー接続エラー: HTTP ${response.status}`);
           }
-          throw new Error("Local proxy did not return valid scenario.");
         } catch (localProxyError: any) {
-          addLog(`[方法1 失敗] サーバー側PC-Agentプロキシがエラーをスローしました。理由: ${localProxyError.message || localProxyError}`);
-          addLog(`[エラー診断] スマホのモバイル回線などの影響、あるいはサーバー側fetchのタイムアウトの可能性があります。`);
-          
-          try {
-            // Backup Method 1: Use Direct Fetch (works if same origin / CORS allowed)
-            addLog(`[方法2] クライアント側ダイレクトフェッチを試行します (CORS確認)...`);
-            const directRes = await fetch(cleanFetchUrl, { cache: 'no-store' });
-            addLog(`ダイレクトフェッチ応答: HTTPステータス: ${directRes.status}`);
-            
-            if (directRes.ok) {
-              const htmlContent = await directRes.text();
-              addLog(`HTML取得成功（直）。文字数: ${htmlContent.length}。テキスト抽出を開始...`);
-              const cleanText = extractTextFromHtml(htmlContent);
-              
-              addLog(`パースを実行します...`);
-              const parsed = parseBlogContent(cleanText);
-              if (parsed && parsed.length > 0) {
-                addLog(`大成功(直フェッチ): シナリオパース成功。ゲームを起動します。`);
-                setActivePlayScenario(parsed[0]);
-                setIsLoadingUrl(false);
-                return;
-              } else {
-                addLog(`ダイレクトフェッチでHTMLは取得できましたが、シナリオは見つかりませんでした。`);
-              }
-            }
-            throw new Error("Direct fetch failed or had no scenarios");
-          } catch (e: any) {
-            addLog(`[方法2 失敗] ダイレクトフェッチもできませんでした。理由: ${e.message || e}`);
-            
-            try {
-              // Backup Method 2: Public allorigins.win CORS proxy
-              addLog(`[方法3] パブリックなCORSプロキシ (allorigins.win) を使ったクライアント側迂回を試みます...`);
-              const corsProxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(cleanFetchUrl)}&_=${Date.now()}`;
-              addLog(`フェッチ先: ${corsProxyUrl}`);
-              
-              const response = await fetch(corsProxyUrl, { cache: 'no-store' });
-              addLog(`allorigins.win 応答: HTTP ${response.status}`);
-              
-              if (response.ok) {
-                const data = await response.json();
-                const htmlContent = data.contents;
-                
-                if (htmlContent) {
-                  addLog(`プロキシ転送HTML受領。文字数: ${htmlContent.length}文字。テキストを抽出中...`);
-                  const cleanText = extractTextFromHtml(htmlContent);
-                  
-                  addLog(`パースを実行します...`);
-                  const parsed = parseBlogContent(cleanText);
-                  
-                  if (parsed && parsed.length > 0) {
-                    addLog(`大成功(allorigins経由): シナリオパース成功。ゲームを起動します。`);
-                    setActivePlayScenario(parsed[0]);
-                    setIsLoadingUrl(false);
-                    return;
-                  } else {
-                    addLog(`allorigins経由でHTMLは取得できましたが、本文内にシナリオが見つかりませんでした。`);
-                    setUrlFetchError("ブログの読み込みに成功しましたが、記事内にシナリオタグ (【タイトル】 などのシーン設定) が見つかりませんでした。");
-                  }
-                } else {
-                  addLog(`alloriginsが受信したコンテンツが空でした。`);
-                  setUrlFetchError("ブログのコンテンツが空でした。URLを確認してください。");
-                }
-              } else {
-                addLog(`alloriginsプロキシサーバーがエラーを返しました。HTTP: ${response.status}`);
-                setUrlFetchError(`プロキシサーバーエラー (${response.status})。ブログの読み込みに失敗しました。`);
-              }
-            } catch (err: any) {
-              addLog(`[方法3 失敗] パブリックCORSプロキシも動作しません。理由: ${err.message || err}`);
-              console.error("Proxy fetch also failed:", err);
-              setUrlFetchError("ブログの読み込みに完全に失敗しました。URLが無効、またはCORS制限、あるいはネットワーク遮断の可能性があります。");
-            }
-          }
+          addLog(`[方法1 失敗] ローカルサーバー側プロキシでエラーが発生しました。理由: ${localProxyError.message || localProxyError}`);
         }
+
+        // --- PHASE 2: METHOD 2 (Direct Client Fetch) ---
+        try {
+          addLog(`[方法2] クライアント側ダイレクトフェッチを試行します (CORS制限の解除確認)...`);
+          const directRes = await fetch(cleanFetchUrl, { cache: 'no-store' });
+          addLog(`ダイレクトフェッチ応答: HTTPステータス: ${directRes.status}`);
+          
+          if (directRes.ok) {
+            const htmlContent = await directRes.text();
+            if (tryParsingContent(htmlContent, "方法2:ダイレクトフェッチ")) return;
+          } else {
+            addLog(`ダイレクトフェッチ接続エラー: HTTP ${directRes.status}`);
+          }
+        } catch (directError: any) {
+          addLog(`[方法2 失敗] ダイレクトフェッチがCORSポリシーまたは接続制限によりブロックされました。理由: ${directError.message || directError}`);
+        }
+
+        // --- PHASE 3: METHOD 3 (Public High-speed Proxy: corsproxy.io) ---
+        try {
+          addLog(`[方法3] 超高速パブリックCORSプロキシ (corsproxy.io) 経由で取得を試みます...`);
+          const pUrl = `https://corsproxy.io/?url=${encodeURIComponent(cleanFetchUrl)}`;
+          addLog(`プロキシーURL: ${pUrl}`);
+          
+          const proxyRes = await fetch(pUrl, { cache: 'no-store' });
+          addLog(`corsproxy.io 応答: HTTP ${proxyRes.status}`);
+          
+          if (proxyRes.ok) {
+            const htmlContent = await proxyRes.text();
+            if (tryParsingContent(htmlContent, "方法3:corsproxy")) return;
+          } else {
+            addLog(`corsproxy.io がエラーを返しました。HTTP ${proxyRes.status}`);
+          }
+        } catch (e: any) {
+          addLog(`[方法3 失敗] corsproxy.io からのエラー: ${e.message || e}`);
+        }
+
+        // --- PHASE 4: METHOD 4 (Public Proxy: codetabs.com) ---
+        try {
+          addLog(`[方法4] 汎用CORSプロキシ (codetabs.com) を使ったクライアント側迂回を試みます...`);
+          const pUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(cleanFetchUrl)}`;
+          addLog(`プロキシーURL: ${pUrl}`);
+          
+          const proxyRes = await fetch(pUrl, { cache: 'no-store' });
+          addLog(`codetabs.com 応答: HTTP ${proxyRes.status}`);
+          
+          if (proxyRes.ok) {
+            const htmlContent = await proxyRes.text();
+            if (tryParsingContent(htmlContent, "方法4:codetabs")) return;
+          } else {
+            addLog(`codetabs.com がエラーを返しました。HTTP ${proxyRes.status}`);
+          }
+        } catch (e: any) {
+          addLog(`[方法4 失敗] codetabs.com からのエラー: ${e.message || e}`);
+        }
+
+        // --- PHASE 5: METHOD 5 (Backup Public Proxy: allorigins.win) ---
+        try {
+          addLog(`[方法5] 最終バックアッププロキシ (allorigins.win) を使った迂回を試みます...`);
+          const corsProxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(cleanFetchUrl)}&_=${Date.now()}`;
+          addLog(`フェッチ先: ${corsProxyUrl}`);
+          
+          const response = await fetch(corsProxyUrl, { cache: 'no-store' });
+          addLog(`allorigins.win 応答: HTTP ${response.status}`);
+          
+          if (response.ok) {
+            const data = await response.json();
+            const htmlContent = data.contents;
+            if (tryParsingContent(htmlContent, "方法5:allorigins")) return;
+          } else {
+            addLog(`alloriginsプロキシサーバーがエラーを返しました。HTTP: ${response.status}`);
+          }
+        } catch (err: any) {
+          addLog(`[方法5 失敗] パブリックCORSプロキシも動作しません。理由: ${err.message || err}`);
+        }
+
+        // --- UNABLE TO FETCH CONTEXTS (FATAL) ---
+        setUrlFetchError("ブログの自動抽出に完全に失敗しました。ブログ（はてなブログ、アメブロなど）に記述されている【タイトル】などのアドベンチャータグ定義が、全角括弧で正しく定義されているかご確認ください。また、手動で記事テキストをコピーして「記事の下書き編集」に貼り付けてテストすることも可能です。");
         setIsLoadingUrl(false);
       }
     };
