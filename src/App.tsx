@@ -103,6 +103,14 @@ export default function App() {
   const [activePlayScenario, setActivePlayScenario] = useState<ParsedScenario | null>(null);
   const [isLoadingUrl, setIsLoadingUrl] = useState(false);
   const [urlFetchError, setUrlFetchError] = useState<string | null>(null);
+  const [fetchLogs, setFetchLogs] = useState<string[]>([]);
+  const [showDebugLogs, setShowDebugLogs] = useState<boolean>(false);
+
+  const addLog = (msg: string) => {
+    const timestamp = new Date().toLocaleTimeString('ja-JP', { hour12: false });
+    setFetchLogs((prev) => [...prev, `[${timestamp}] ${msg}`]);
+    console.log(`[Diagnostic] ${msg}`);
+  };
 
   // 1. URL Query parameters initialization & 2. Window PostMessage receivers
   useEffect(() => {
@@ -153,101 +161,168 @@ export default function App() {
       }
 
       if (blogUrlParam) {
-        // Prevent s.ameblo.jp (mobile SPA layout with missing SSR body text) from failing to parse.
-        // Convert to PC ameblo.jp URL which contains fully SSR'd blog texts for CORS proxy parser.
-        if (blogUrlParam.includes('s.ameblo.jp')) {
-          blogUrlParam = blogUrlParam.replace('s.ameblo.jp', 'ameblo.jp');
-        }
-
+        let finalCleanUrl = blogUrlParam;
         // Clean tracking & styling parameters that trigger mobile redirection in ameblo
         try {
           const urlObj = new URL(blogUrlParam);
           if (urlObj.hostname.includes('ameblo.jp')) {
             const keysToRemove = ['frm_id', 'device_id', 'amba', 'gamp', 'amp', 'page', 'device'];
             keysToRemove.forEach(k => urlObj.searchParams.delete(k));
-            blogUrlParam = urlObj.toString();
+            finalCleanUrl = urlObj.toString();
           }
-        } catch(e) {
+        } catch(e: any) {
           console.warn("Could not clean tracking params:", e);
         }
 
+        setFetchLogs([]); // Reset diagnostic logs
         setIsLoadingUrl(true);
         setUrlFetchError(null);
+        setShowDebugLogs(true); // Automatically expand log drawer so the user can see real-time progress!
+
+        addLog(`=== 外部ブログのシナリオ取得プロセスを開始します ===`);
+        addLog(`入力URL: ${blogUrlParam}`);
+
+        if (blogUrlParam.includes('s.ameblo.jp')) {
+          addLog(`検出: アメブロモバイル専用ドメイン (s.ameblo.jp)。`);
+          addLog(`PC向けデスクトップレイアウトを強制するために ameblo.jp に書き換えます。`);
+          finalCleanUrl = finalCleanUrl.replace('s.ameblo.jp', 'ameblo.jp');
+          addLog(`書き換え後: ${finalCleanUrl}`);
+        }
+
+        addLog(`不要なトラッキングクエリのクリーンアップ完了.`);
         
         // Always append a cache-buster timestamp query parameters to bypass CORS / allorigins proxy caches
-        const cleanFetchUrl = blogUrlParam.includes('?')
-          ? `${blogUrlParam}&_=${Date.now()}`
-          : `${blogUrlParam}?_=${Date.now()}`;
+        const cleanFetchUrl = finalCleanUrl.includes('?')
+          ? `${finalCleanUrl}&_=${Date.now()}`
+          : `${finalCleanUrl}?_=${Date.now()}`;
+
+        addLog(`キャッシュバスター（クエリ末尾のタイムスタンプ）を追加: ${cleanFetchUrl}`);
 
         try {
-          // 1. Primary Method: Fetch using our dedicated server-side PC-User-Agent Proxy.
-          // This entirely prevents target servers (like Ameblo) from serving incomplete / redirected mobile SPA HTML.
+          // 1. Primary Method: Fetch using our dedicated server-side PC-User-Agent Proxy (JSON API type).
           const localProxyUrl = `/api/proxy?url=${encodeURIComponent(cleanFetchUrl)}`;
-          console.log("Fetching blog via local PC-User-Agent proxy:", localProxyUrl);
+          addLog(`[方法1] サーバーサイド PC User-Agent プロキシを呼び出します...`);
+          addLog(`プロキシ転送先エンドポイント: ${localProxyUrl}`);
+          
           const response = await fetch(localProxyUrl, { cache: 'no-store' });
+          addLog(`プロキシサーバーが HTTP ステータス ${response.status} で応答しました。`);
+          
           if (response.ok) {
-            const htmlContent = await response.text();
-            if (htmlContent && htmlContent.trim()) {
-              const cleanText = extractTextFromHtml(htmlContent);
+            const data = await response.json();
+            
+            // Merge backend side diagnostic logs
+            if (data.logs && Array.isArray(data.logs)) {
+              data.logs.forEach((backendLog: string) => {
+                addLog(`[Backend] ${backendLog}`);
+              });
+            }
+
+            if (data.success && data.html) {
+              addLog(`結果: サーバー側プロキシでのHTML取得に成功しました。文字数: ${data.html.length}文字。`);
+              addLog(`DOMParserを利用してHTMLからタグ、スクリプトを除去し、テキスト本文を抽出します...`);
+              
+              const cleanText = extractTextFromHtml(data.html);
+              addLog(`本文テキストの抽出に成功しました (文字数: ${cleanText.length}文字)。`);
+              
+              addLog(`本文からシナリオタグ（【タイトル】、シーン切り替えなど）を検索・パース中...`);
               const parsed = parseBlogContent(cleanText);
+              
               if (parsed && parsed.length > 0) {
-                console.log("Successfully fetched and parsed blog scenario via local proxy!");
+                addLog(`大成功!!! ${parsed.length}つのシナリオを検出し、パースに成功しました。ゲームを起動します。`);
                 setActivePlayScenario(parsed[0]);
                 setIsLoadingUrl(false);
                 return;
               } else {
-                console.warn("Local proxy fetch succeeded, but did not find any scenario tags.", parsed);
-                // Fall down to next checks or show elegant err
+                addLog(`警告：HTMLの取得・本文抽出には成功しましたが、抽出テキスト内に【タイトル】などのシナリオ構文が見つかりませんでした。`);
+                addLog(`抽出された先頭150文字: "${cleanText.substring(0, 150)}..."`);
+                addLog(`ブログに記述されているタグ（【タイトル】や【シーン名】など）が正しく全角で記述されているかご確認ください。`);
               }
+            } else {
+              addLog(`プロキシ呼び出し警告: プロキシは応答しましたが、処理ステータスが「失敗」です。理由: ${data.error || '不明'}`);
             }
+          } else {
+            addLog(`サーバープロキシ接続エラー: レスポンスが正常(200-299)ではありませんでした。`);
+            try {
+              const errBody = await response.json();
+              if (errBody.logs) {
+                errBody.logs.forEach((backendLog: string) => {
+                  addLog(`[Backend-Err] ${backendLog}`);
+                });
+              }
+            } catch(e) {}
           }
           throw new Error("Local proxy did not return valid scenario.");
-        } catch (localProxyError) {
-          console.warn("Local API proxy failed or returned invalid markup, falling back to allorigins / direct:", localProxyError);
+        } catch (localProxyError: any) {
+          addLog(`[方法1 失敗] サーバー側PC-Agentプロキシがエラーをスローしました。理由: ${localProxyError.message || localProxyError}`);
+          addLog(`[エラー診断] スマホのモバイル回線などの影響、あるいはサーバー側fetchのタイムアウトの可能性があります。`);
           
           try {
-            // Backup Method: Use Direct Fetch (works if same origin / CORS allowed)
+            // Backup Method 1: Use Direct Fetch (works if same origin / CORS allowed)
+            addLog(`[方法2] クライアント側ダイレクトフェッチを試行します (CORS確認)...`);
             const directRes = await fetch(cleanFetchUrl, { cache: 'no-store' });
+            addLog(`ダイレクトフェッチ応答: HTTPステータス: ${directRes.status}`);
+            
             if (directRes.ok) {
               const htmlContent = await directRes.text();
+              addLog(`HTML取得成功（直）。文字数: ${htmlContent.length}。テキスト抽出を開始...`);
               const cleanText = extractTextFromHtml(htmlContent);
-
+              
+              addLog(`パースを実行します...`);
               const parsed = parseBlogContent(cleanText);
               if (parsed && parsed.length > 0) {
+                addLog(`大成功(直フェッチ): シナリオパース成功。ゲームを起動します。`);
                 setActivePlayScenario(parsed[0]);
                 setIsLoadingUrl(false);
                 return;
+              } else {
+                addLog(`ダイレクトフェッチでHTMLは取得できましたが、シナリオは見つかりませんでした。`);
               }
             }
             throw new Error("Direct fetch failed or had no scenarios");
-          } catch (e) {
-            console.warn("Direct fetch fail, trying public allorigins.win proxy:", e);
+          } catch (e: any) {
+            addLog(`[方法2 失敗] ダイレクトフェッチもできませんでした。理由: ${e.message || e}`);
+            
             try {
               // Backup Method 2: Public allorigins.win CORS proxy
+              addLog(`[方法3] パブリックなCORSプロキシ (allorigins.win) を使ったクライアント側迂回を試みます...`);
               const corsProxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(cleanFetchUrl)}&_=${Date.now()}`;
+              addLog(`フェッチ先: ${corsProxyUrl}`);
+              
               const response = await fetch(corsProxyUrl, { cache: 'no-store' });
+              addLog(`allorigins.win 応答: HTTP ${response.status}`);
+              
               if (response.ok) {
                 const data = await response.json();
                 const htmlContent = data.contents;
+                
                 if (htmlContent) {
+                  addLog(`プロキシ転送HTML受領。文字数: ${htmlContent.length}文字。テキストを抽出中...`);
                   const cleanText = extractTextFromHtml(htmlContent);
+                  
+                  addLog(`パースを実行します...`);
                   const parsed = parseBlogContent(cleanText);
+                  
                   if (parsed && parsed.length > 0) {
+                    addLog(`大成功(allorigins経由): シナリオパース成功。ゲームを起動します。`);
                     setActivePlayScenario(parsed[0]);
                     setIsLoadingUrl(false);
                     return;
                   } else {
+                    addLog(`allorigins経由でHTMLは取得できましたが、本文内にシナリオが見つかりませんでした。`);
                     setUrlFetchError("ブログの読み込みに成功しましたが、記事内にシナリオタグ (【タイトル】 などのシーン設定) が見つかりませんでした。");
                   }
                 } else {
+                  addLog(`alloriginsが受信したコンテンツが空でした。`);
                   setUrlFetchError("ブログのコンテンツが空でした。URLを確認してください。");
                 }
               } else {
+                addLog(`alloriginsプロキシサーバーがエラーを返しました。HTTP: ${response.status}`);
                 setUrlFetchError(`プロキシサーバーエラー (${response.status})。ブログの読み込みに失敗しました。`);
               }
-            } catch (err) {
+            } catch (err: any) {
+              addLog(`[方法3 失敗] パブリックCORSプロキシも動作しません。理由: ${err.message || err}`);
               console.error("Proxy fetch also failed:", err);
-              setUrlFetchError("ブログの読み込みに完全に失敗しました。URLが無効、またはCORS制限の可能性があります。");
+              setUrlFetchError("ブログの読み込みに完全に失敗しました。URLが無効、またはCORS制限、あるいはネットワーク遮断の可能性があります。");
             }
           }
         }
@@ -510,12 +585,63 @@ export default function App() {
 
       {/* URL Proxy Loader Error Status */}
       {urlFetchError && (
-        <section className="px-6 py-3 text-xs flex items-center justify-between gap-4 border-b bg-red-50 text-red-700 border-red-200">
-          <div className="flex items-center gap-2 font-bold font-sans">
-            <Info className="w-4 h-4 shrink-0" />
-            {urlFetchError}
-            <button onClick={() => setUrlFetchError(null)} className="ml-4 underline hover:text-red-900 cursor-pointer">閉じる</button>
+        <section className="px-6 py-4 flex flex-col gap-3 border-b bg-red-50 text-red-900 border-red-200">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-2 font-bold font-sans text-xs sm:text-sm text-red-700">
+              <Info className="w-4 h-4 shrink-0 text-red-500 animate-bounce" />
+              <span>{urlFetchError}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              {fetchLogs.length > 0 && (
+                <button
+                  onClick={() => setShowDebugLogs(!showDebugLogs)}
+                  className="px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-800 rounded-lg text-[11px] font-bold transition-all cursor-pointer border border-red-200 flex items-center gap-1 shrink-0"
+                >
+                  {showDebugLogs ? 'ログを閉じる' : '診断ログを表示'}
+                </button>
+              )}
+              <button 
+                onClick={() => {
+                  setUrlFetchError(null);
+                  setShowDebugLogs(false);
+                }} 
+                className="text-xs font-bold text-red-500 hover:text-red-900 cursor-pointer underline px-2 py-1 shrink-0"
+              >
+                閉じる
+              </button>
+            </div>
           </div>
+
+          {showDebugLogs && fetchLogs.length > 0 && (
+            <div className="bg-zinc-950 text-zinc-100 rounded-xl p-4 font-mono text-[11px] space-y-2 mt-1 shadow-inner border border-zinc-900 max-w-4xl w-full mx-auto select-text">
+              <div className="flex justify-between items-center pb-2 border-b border-zinc-800">
+                <span className="text-zinc-400 font-bold text-[10px] uppercase tracking-wider">Ameblo読み込み診断ログ</span>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(fetchLogs.join('\n'));
+                    alert('診断ログをクリップボードにコピーしました！そのままアシスタントチャットへペーストしていただけます。');
+                  }}
+                  className="px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1"
+                >
+                  <Copy className="w-3.5 h-3.5 text-zinc-400" />
+                  <span>ログを丸ごとコピー</span>
+                </button>
+              </div>
+              <div className="max-h-60 overflow-y-auto space-y-1 pr-1 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+                {fetchLogs.map((log, index) => {
+                  let cls = "text-zinc-300";
+                  if (log.includes('成功') || log.includes('Succeeded') || log.includes('大成功')) cls = "text-emerald-400 font-semibold";
+                  if (log.includes('失敗') || log.includes('failed') || log.includes('Error') || log.includes('警告') || log.includes('エラー')) cls = "text-red-400 font-semibold";
+                  if (log.includes('[Backend]')) cls = "text-blue-400";
+                  return (
+                    <div key={index} className={`whitespace-pre-wrap break-all leading-normal ${cls}`}>
+                      {log}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </section>
       )}
 
@@ -705,13 +831,47 @@ export default function App() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/80 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/85 backdrop-blur-sm px-4"
           >
-            <div className="bg-white p-8 rounded-2xl shadow-2xl flex flex-col items-center gap-5 max-w-sm w-full text-center">
-              <div className="w-12 h-12 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin"></div>
-              <div className="space-y-1">
-                <p className="text-xl font-black text-zinc-900 tracking-tight">シナリオを読み込み中</p>
-                <p className="text-xs text-zinc-500 font-medium">外部ブログからデータを抽出しています...</p>
+            <div className="bg-white p-6 md:p-8 rounded-2xl shadow-2xl flex flex-col items-center gap-5 max-w-lg w-full text-center border border-zinc-200">
+              <div className="relative flex items-center justify-center">
+                <div className="w-14 h-14 border-4 border-emerald-100 border-t-emerald-600 rounded-full animate-spin"></div>
+                <Gamepad2 className="w-5 h-5 text-emerald-600 absolute animate-pulse" />
+              </div>
+              <div className="space-y-1.5">
+                <p className="text-lg font-black text-zinc-900 tracking-tight">シナリオを分析・展開中</p>
+                <p className="text-xs text-zinc-500 font-medium">
+                  アメブロからアドベンチャースクリプトを抽出しています...
+                </p>
+              </div>
+
+              {/* Real-time Loading Steps Log */}
+              {fetchLogs.length > 0 && (
+                <div className="w-full mt-2 text-left bg-zinc-950 border border-zinc-900 rounded-xl p-3.5 space-y-2 shadow-inner">
+                  <div className="flex items-center justify-between pb-1 border-b border-zinc-800 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+                    <span>進行ステータス ログ</span>
+                    <span className="text-emerald-500 animate-pulse font-mono">
+                      {fetchLogs[fetchLogs.length - 1]?.includes('成功') ? 'COMPLETED' : 'PROCESSING...'}
+                    </span>
+                  </div>
+                  <div className="font-mono text-[10.5px] max-h-40 overflow-y-auto space-y-1 pr-1 text-zinc-350 select-text leading-normal scrollbar-thin scrollbar-thumb-zinc-800">
+                    {fetchLogs.map((log, index) => {
+                      let cls = "text-zinc-400";
+                      if (log.includes('成功') || log.includes('Succeeded') || log.includes('大成功')) cls = "text-emerald-400 font-semibold";
+                      if (log.includes('失敗') || log.includes('failed') || log.includes('Error') || log.includes('警告') || log.includes('エラー')) cls = "text-red-400 font-semibold";
+                      if (log.includes('[Backend]')) cls = "text-blue-400";
+                      return (
+                        <div key={index} className={`whitespace-pre-wrap break-all ${cls}`}>
+                          {log}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              <div className="text-[10px] text-zinc-400 font-bold flex gap-2 justify-center">
+                <span>※ PCでは最速で読み込めます。スマホ独自のCORS制限は迂回処理を試みます。</span>
               </div>
             </div>
           </motion.div>

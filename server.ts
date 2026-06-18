@@ -9,19 +9,28 @@ async function startServer() {
   // 1. API: Custom proxy to solve Android Chrome Ameblo desktop/mobile CORS issues once and for all!
   app.get("/api/proxy", async (req, res) => {
     let targetUrl = req.query.url as string;
+    const logs: string[] = [];
     
+    logs.push(`[Proxy] Received request for URL: ${targetUrl}`);
+
     if (!targetUrl) {
-      return res.status(400).json({ error: "URL query parameter is required." });
+      logs.push("[Proxy] Error: URL parameter is missing.");
+      return res.status(400).json({ success: false, error: "URL query parameter is required.", logs });
     }
 
     // Decoding and normalizing
     try {
-      targetUrl = decodeURIComponent(targetUrl);
-    } catch (e) {
-      // Ignored if already decoded
+      const decoded = decodeURIComponent(targetUrl);
+      if (decoded !== targetUrl) {
+        logs.push(`[Proxy] Normalized decoded URL: ${decoded}`);
+        targetUrl = decoded;
+      }
+    } catch (e: any) {
+      logs.push(`[Proxy] URL decode check: ${e.message || e}`);
     }
 
     if (targetUrl.includes("s.ameblo.jp")) {
+      logs.push(`[Proxy] Mobile domain s.ameblo.jp detected. Rewriting to ameblo.jp for PC layout.`);
       targetUrl = targetUrl.replace("s.ameblo.jp", "ameblo.jp");
     }
 
@@ -29,11 +38,22 @@ async function startServer() {
     try {
       const urlObj = new URL(targetUrl);
       const keysToRemove = ["frm_id", "device_id", "amba", "gamp", "amp", "page", "device"];
-      keysToRemove.forEach(k => urlObj.searchParams.delete(k));
+      let removedCount = 0;
+      keysToRemove.forEach(k => {
+        if (urlObj.searchParams.has(k)) {
+          urlObj.searchParams.delete(k);
+          removedCount++;
+        }
+      });
+      if (removedCount > 0) {
+        logs.push(`[Proxy] Cleaned ${removedCount} tracking query parameter(s).`);
+      }
       targetUrl = urlObj.toString();
-    } catch (e) {
-      console.warn("Could not parse target URL object:", e);
+    } catch (e: any) {
+      logs.push(`[Proxy] URL parsing warning: ${e.message || e}`);
     }
+
+    logs.push(`[Proxy] Finalized target URL: ${targetUrl}`);
 
     const headers = {
       "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -62,80 +82,92 @@ async function startServer() {
     console.log(`[Proxy] Resilient fetch chain initiated for: ${targetUrl}`);
 
     // Strategy 1: Direct fetch with Desktop User-Agent
+    const t0 = Date.now();
     try {
-      console.log("[Proxy] Strategy 1: Direct Fetch");
+      logs.push(`[Proxy] Strategy 1: Direct Fetch beginning...`);
       const response = await fetchWithTimeout(targetUrl, { headers, method: "GET" }, 4000);
+      logs.push(`[Proxy] Strategy 1 responded with HTTP ${response.status}`);
       if (response.ok) {
         const html = await response.text();
         if (html && html.trim().length > 500) {
-          console.log("[Proxy] Strategy 1 Succeeded!");
-          res.setHeader("Content-Type", "text/plain; charset=utf-8");
-          return res.send(html);
+          logs.push(`[Proxy] Strategy 1 succeeded! Loaded ${html.length} chars in ${Date.now() - t0}ms`);
+          return res.json({ success: true, html, logs });
+        } else {
+          logs.push(`[Proxy] Strategy 1 returned empty or extremely short content (${html?.length || 0} chars).`);
         }
       }
-      console.warn(`[Proxy] Strategy 1 direct fetch returned status: ${response.status}`);
     } catch (e: any) {
-      console.warn("[Proxy] Strategy 1 Failed or Timed out:", e.message || e);
+      logs.push(`[Proxy] Strategy 1 failed/timed out in ${Date.now() - t0}ms. Error: ${e.message || e}`);
     }
 
-    // Strategy 2: Fetch via corsproxy.io on server-side (Bypasses Google Cloud block, enforces desktop agent)
+    // Strategy 2: Fetch via corsproxy.io on server-side
+    const t1 = Date.now();
     try {
-      console.log("[Proxy] Strategy 2: corsproxy.io Fetch");
+      logs.push(`[Proxy] Strategy 2: corsproxy.io Fetch beginning...`);
       const corsProxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(targetUrl)}`;
       const response = await fetchWithTimeout(corsProxyUrl, { headers, method: "GET" }, 4000);
+      logs.push(`[Proxy] Strategy 2 responded with HTTP ${response.status}`);
       if (response.ok) {
         const html = await response.text();
         if (html && html.trim().length > 500) {
-          console.log("[Proxy] Strategy 2 Succeeded!");
-          res.setHeader("Content-Type", "text/plain; charset=utf-8");
-          return res.send(html);
+          logs.push(`[Proxy] Strategy 2 succeeded! Loaded ${html.length} chars in ${Date.now() - t1}ms`);
+          return res.json({ success: true, html, logs });
+        } else {
+          logs.push(`[Proxy] Strategy 2 returned short content (${html?.length || 0} chars).`);
         }
       }
-      console.warn(`[Proxy] Strategy 2 returned status: ${response.status}`);
     } catch (e: any) {
-      console.warn("[Proxy] Strategy 2 Failed or Timed out:", e.message || e);
+      logs.push(`[Proxy] Strategy 2 failed/timed out in ${Date.now() - t1}ms. Error: ${e.message || e}`);
     }
 
     // Strategy 3: Fetch via api.allorigins.win on server-side
+    const t2 = Date.now();
     try {
-      console.log("[Proxy] Strategy 3: api.allorigins.win Fetch");
+      logs.push(`[Proxy] Strategy 3: api.allorigins.win Fetch beginning...`);
       const allOriginsUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}&_=${Date.now()}`;
       const response = await fetchWithTimeout(allOriginsUrl, { method: "GET" }, 4500);
+      logs.push(`[Proxy] Strategy 3 responded with HTTP ${response.status}`);
       if (response.ok) {
         const data = await response.json();
         const html = data?.contents;
         if (html && html.trim().length > 500) {
-          console.log("[Proxy] Strategy 3 Succeeded!");
-          res.setHeader("Content-Type", "text/plain; charset=utf-8");
-          return res.send(html);
+          logs.push(`[Proxy] Strategy 3 succeeded! Loaded ${html.length} chars in ${Date.now() - t2}ms`);
+          return res.json({ success: true, html, logs });
+        } else {
+          logs.push(`[Proxy] Strategy 3 returned null/short contents.`);
         }
       }
-      console.warn(`[Proxy] Strategy 3 returned status: ${response.status}`);
     } catch (e: any) {
-      console.warn("[Proxy] Strategy 3 Failed or Timed out:", e.message || e);
+      logs.push(`[Proxy] Strategy 3 failed/timed out in ${Date.now() - t2}ms. Error: ${e.message || e}`);
     }
 
     // Strategy 4: Fetch via codetabs.com on server-side
+    const t3 = Date.now();
     try {
-      console.log("[Proxy] Strategy 4: codetabs.com Fetch");
+      logs.push(`[Proxy] Strategy 4: codetabs.com Fetch beginning...`);
       const codetabsUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`;
       const response = await fetchWithTimeout(codetabsUrl, { headers, method: "GET" }, 4000);
+      logs.push(`[Proxy] Strategy 4 responded with HTTP ${response.status}`);
       if (response.ok) {
         const html = await response.text();
         if (html && html.trim().length > 500) {
-          console.log("[Proxy] Strategy 4 Succeeded!");
-          res.setHeader("Content-Type", "text/plain; charset=utf-8");
-          return res.send(html);
+          logs.push(`[Proxy] Strategy 4 succeeded! Loaded ${html.length} chars in ${Date.now() - t3}ms`);
+          return res.json({ success: true, html, logs });
+        } else {
+          logs.push(`[Proxy] Strategy 4 returned short content.`);
         }
       }
-      console.warn(`[Proxy] Strategy 4 returned status: ${response.status}`);
     } catch (e: any) {
-      console.warn("[Proxy] Strategy 4 Failed or Timed out:", e.message || e);
+      logs.push(`[Proxy] Strategy 4 failed/timed out in ${Date.now() - t3}ms. Error: ${e.message || e}`);
     }
 
-    // If all strategies fail, return structured error
-    console.error("[Proxy Error]: All 4 resilient strategies failed to retrieve blog content.");
-    return res.status(502).json({ error: "全てのプロキシ試行に失敗しました。ブログサーバーにアクセスできないか、ブロックされています。" });
+    // If all failed
+    logs.push(`[Proxy] All 4 strategies failed.`);
+    return res.status(502).json({
+      success: false,
+      error: "プロキシサーバー経由のすべてのフェッチ試行が失敗、またはタイムアウトしました。",
+      logs
+    });
   });
 
   // 2. Vite middleware setup
