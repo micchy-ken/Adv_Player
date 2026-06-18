@@ -431,9 +431,9 @@ export default function App() {
     const newId = `blog-${Date.now()}`;
     const newBlog: BlogItem = {
       id: newId,
-      title: "新しいコラム記事",
-      category: "日常コラム",
-      description: "アドベンチャータグを埋め込んで読み込みテストを行えます。",
+      title: "新しいコラム記事（サンプル）",
+      category: "",
+      description: "",
       content: `### 記事の導入部分
 
 ここに日常の話を書きます。
