@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { ParsedScenario, ScenarioConfig, DialogueItem, CharacterConfig } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
-import { Play, RotateCcw, Volume2, VolumeX, X, ChevronRight, CornerDownLeft, Eye, MessageSquare, FastForward } from 'lucide-react';
+import { Play, RotateCcw, Volume2, VolumeX, X, ChevronRight, CornerDownLeft, Eye, MessageSquare, FastForward, Gamepad2 } from 'lucide-react';
 
 interface AdventureGameViewProps {
   scenario: ParsedScenario;
@@ -86,6 +86,7 @@ export default function AdventureGameView({
   config,
   onClose
 }: AdventureGameViewProps) {
+  const [isStarted, setIsStarted] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [typedText, setTypedText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -230,15 +231,19 @@ export default function AdventureGameView({
 
   // Play intro sound on start
   useEffect(() => {
-    // Trigger on first render of the overlay
-    audioSynth.playIntro();
+    // Trigger on first render of the overlay only after started
+    if (isStarted) {
+      audioSynth.playIntro();
+    }
     return () => {
       if (typewriterTimer.current) clearInterval(typewriterTimer.current);
     };
-  }, []);
+  }, [isStarted]);
 
   // Trigger typed content update on step changes
   useEffect(() => {
+    if (!isStarted) return;
+
     if (typewriterTimer.current) {
       clearInterval(typewriterTimer.current);
       typewriterTimer.current = null;
@@ -334,10 +339,11 @@ export default function AdventureGameView({
     return () => {
       if (typewriterTimer.current) clearInterval(typewriterTimer.current);
     };
-  }, [currentIndex, isSkip, scenario]);
+  }, [currentIndex, isSkip, scenario, isStarted]);
 
   // Handle auto advance triggers when toggling autoplay
   useEffect(() => {
+    if (!isStarted) return;
     if (isAutoplay && !isTyping && currentStep) {
       const waitTime = currentStep.type === 'click-wait' ? 1000 : 1800;
       const t = setTimeout(() => {
@@ -345,7 +351,7 @@ export default function AdventureGameView({
       }, waitTime);
       return () => clearTimeout(t);
     }
-  }, [isAutoplay, isTyping, currentIndex]);
+  }, [isAutoplay, isTyping, currentIndex, isStarted]);
 
   // Advance story
   const handleNext = () => {
@@ -429,20 +435,20 @@ export default function AdventureGameView({
 
     // Decide sprite classes based on active state
     const highlightClass = isSpeaking
-      ? 'brightness-100 contrast-100 scale-105 z-20 shadow-2xl ring-4 ring-white/50'
+      ? 'brightness-100 contrast-100 scale-105 z-20 shadow-2xl ring-2 sm:ring-4 ring-white/50'
       : 'brightness-50 contrast-90 scale-95 z-10';
 
     return (
       <motion.div
         key={charConfig.key}
-        initial={{ opacity: 0, x: styleIsLeft ? -120 : 120, y: 20 }}
+        initial={{ opacity: 0, x: styleIsLeft ? -40 : 40, y: 15 }}
         animate={{ opacity: existsOnStage ? 1 : 0.6, x: 0, y: 0 }}
-        exit={{ opacity: 0, x: styleIsLeft ? -100 : 100 }}
-        transition={{ type: 'spring', stiffness: 80, damping: 15 }}
-        className={`flex flex-col items-center pointer-events-none select-none max-w-[200px] sm:max-w-[250px] transition-all duration-300 ${highlightClass}`}
+        exit={{ opacity: 0, x: styleIsLeft ? -30 : 30 }}
+        transition={{ type: 'spring', stiffness: 90, damping: 16 }}
+        className={`flex flex-col items-center pointer-events-none select-none max-w-[100px] min-[400px]:max-w-[140px] sm:max-w-[250px] transition-all duration-300 ${highlightClass}`}
       >
         {/* Avatar frame */}
-        <div className="relative rounded-2xl overflow-hidden border-4 border-zinc-900 bg-zinc-800 shadow-xl aspect-square w-32 sm:w-44 md:w-52">
+        <div className="relative rounded-xl sm:rounded-2xl overflow-hidden border-2 sm:border-4 border-zinc-900 bg-zinc-800 shadow-xl aspect-square w-20 min-[370px]:w-24 min-[450px]:w-28 sm:w-44 md:w-52">
           <img
             src={charConfig.avatarUrl}
             alt={charConfig.displayName}
@@ -452,7 +458,7 @@ export default function AdventureGameView({
           
           {/* Status light tag */}
           {isSpeaking && (
-            <div className="absolute top-2 right-2 bg-rose-500 text-[9px] text-white px-1.5 py-0.5 rounded font-black tracking-widest uppercase animate-pulse">
+            <div className="absolute top-1 right-1 sm:top-2 sm:right-2 bg-rose-500 text-[7px] sm:text-[9px] text-white px-1 sm:px-1.5 py-0.5 rounded font-black tracking-widest uppercase animate-pulse">
               TALKING
             </div>
           )}
@@ -461,7 +467,7 @@ export default function AdventureGameView({
         {/* Label banner */}
         <div
           style={{ backgroundColor: charConfig.color }}
-          className="mt-3 px-4 py-1.5 rounded-lg text-white font-bold text-xs sm:text-sm tracking-wide shadow-md border border-white/20 whitespace-nowrap min-w-[100px] text-center"
+          className="mt-1.5 min-[400px]:mt-2 px-2 sm:px-4 py-1 sm:py-1.5 rounded-md sm:rounded-lg text-white font-bold text-[10px] min-[400px]:text-xs sm:text-sm tracking-wide shadow-md border border-white/20 whitespace-nowrap min-w-[70px] min-[400px]:min-w-[95px] text-center"
         >
           {charConfig.displayName}
         </div>
@@ -471,9 +477,55 @@ export default function AdventureGameView({
 
   return (
     <div
-      className="fixed inset-0 z-50 overflow-hidden flex flex-col justify-between bg-zinc-950 font-sans text-zinc-100"
+      className="fixed inset-0 z-50 overflow-hidden flex flex-col justify-between bg-zinc-950 font-sans text-zinc-100 h-[100dvh]"
       id="adventure-game-overlay"
     >
+      {/* Click-to-Start Title Cover Overlay */}
+      <AnimatePresence>
+        {!isStarted && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-[90] flex flex-col items-center justify-center bg-zinc-950/90 backdrop-blur-md px-6 text-center select-none"
+            id="start-gate-overlay"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.1, type: "spring", stiffness: 95, damping: 18 }}
+              className="w-full max-w-sm space-y-7 bg-zinc-900/60 p-6 sm:p-8 rounded-3xl border border-white/5 shadow-2xl relative"
+            >
+              <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-16 h-16 bg-emerald-600 rounded-2xl border-4 border-zinc-950 flex items-center justify-center shadow-lg animate-bounce">
+                <Gamepad2 className="w-8 h-8 text-white" />
+              </div>
+
+              <div className="space-y-2.5 pt-6">
+                <span className="text-[9px] text-emerald-400 tracking-[0.25em] font-black uppercase block animate-pulse">
+                  Ready to Simulate
+                </span>
+                <h2 className="text-xl sm:text-2xl font-black text-white tracking-wider leading-tight">
+                  {scenario.title || config.name}
+                </h2>
+                <div className="w-16 h-0.5 bg-gradient-to-r from-emerald-500 to-teal-500 mx-auto rounded-full mt-2" />
+              </div>
+
+              <p className="text-zinc-400 text-[11px] leading-relaxed max-w-[260px] mx-auto">
+                ブログから会話劇シミュレーターを生成しました。BGM演出や文字送りと合わせて楽しむには、下のボタンを押してください。
+              </p>
+
+              <button
+                onClick={() => setIsStarted(true)}
+                className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs tracking-widest uppercase rounded-xl shadow-xl shadow-emerald-950/40 active:translate-y-px cursor-pointer transition-all duration-150"
+                id="btn-gate-start"
+              >
+                タップしてスタート
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Background with zoom in effect */}
       <div className="absolute inset-0 z-0">
         <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/60 z-10" />
@@ -489,79 +541,79 @@ export default function AdventureGameView({
       </div>
 
       {/* Top Header Grid */}
-      <header className="relative z-20 flex items-center justify-between p-4 md:px-6 bg-gradient-to-b from-black/80 to-transparent">
+      <header className="relative z-20 flex items-center justify-between p-3 sm:p-4 md:px-6 bg-gradient-to-b from-black/80 to-transparent">
         <div className="flex flex-col">
-          <span className="text-[10px] text-emerald-400 font-bold tracking-wider uppercase flex items-center gap-1">
+          <span className="text-[9px] sm:text-[10px] text-emerald-400 font-bold tracking-wider uppercase flex items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
             Adventure Mode Active
           </span>
-          <h1 className="text-sm md:text-base font-black tracking-tight text-white drop-shadow">
+          <h1 className="text-xs sm:text-sm md:text-base font-black tracking-tight text-white drop-shadow truncate max-w-[150px] min-[380px]:max-w-[200px] sm:max-w-xs md:max-w-none">
             {scenario.title || config.name}
           </h1>
         </div>
 
         {/* Dashboard Tools */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           {/* Backlog viewer button */}
           <button
             onClick={() => setShowLog(!showLog)}
-            className={`p-2 rounded-lg border text-xs gap-1 flex items-center transition-colors cursor-pointer ${
+            className={`p-1.5 sm:p-2 rounded-lg border text-[11px] sm:text-xs gap-1 flex items-center transition-colors cursor-pointer ${
               showLog ? 'bg-zinc-800 text-white border-zinc-600' : 'bg-black/40 text-zinc-300 border-white/10 hover:bg-black/60'
             }`}
             title="会話ログ"
           >
-            <MessageSquare className="w-4 h-4" />
-            <span className="hidden sm:inline">ログ({backlog.length})</span>
+            <MessageSquare className="w-3.5 h-3.5 sm:w-4 h-4" />
+            <span className="hidden min-[400px]:inline">ログ({backlog.length})</span>
           </button>
 
           {/* Mute button */}
           <button
             onClick={() => setIsMuted(!isMuted)}
-            className="p-2 bg-black/40 hover:bg-black/60 border border-white/10 rounded-lg text-zinc-300 transition-colors cursor-pointer"
+            className="p-1.5 sm:p-2 bg-black/40 hover:bg-black/60 border border-white/10 rounded-lg text-zinc-300 transition-colors cursor-pointer"
             title={isMuted ? "ミュート解除" : "ミュート"}
           >
-            {isMuted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4" />}
+            {isMuted ? <VolumeX className="w-3.5 h-3.5 sm:w-4 h-4 text-rose-400" /> : <Volume2 className="w-3.5 h-3.5 sm:w-4 h-4" />}
           </button>
 
           {/* Close adventure game button */}
           <button
             onClick={onClose}
-            className="p-2 bg-rose-600/90 hover:bg-rose-700 text-white rounded-lg transition-all shadow-lg hover:rotate-90 duration-200 cursor-pointer"
+            className="p-1.5 sm:p-2 bg-rose-600/90 hover:bg-rose-700 text-white rounded-lg transition-all shadow-lg hover:rotate-90 duration-200 cursor-pointer"
             title="ゲームを終了"
           >
-            <X className="w-4 h-4" />
+            <X className="w-3.5 h-3.5 sm:w-4 h-4" />
           </button>
         </div>
       </header>
 
       {/* Stage: Character Area */}
-      <main className="relative z-10 flex-1 flex items-end justify-between px-6 sm:px-16 md:px-24 pb-4 select-none">
+      <main className="relative z-10 flex-1 flex items-end justify-between px-2 sm:px-12 md:px-20 lg:px-24 pb-2 sm:pb-4 select-none max-w-5xl w-full mx-auto">
         <div className="absolute inset-0 bg-transparent z-0 pointer-events-none" />
 
         {/* Left Character Slot */}
-        <div className="w-1/3 flex justify-start">
+        <div className="w-[45%] flex justify-start">
           {renderCharacter(activeLeft, true)}
         </div>
 
         {/* Center / Narrator Slot or Info Indicator */}
-        <div className="w-1/3 flex justify-center pb-12 self-center">
+        <div className="w-[10%] flex justify-center pb-12 self-center">
         </div>
 
         {/* Right Character Slot */}
-        <div className="w-1/3 flex justify-end">
+        <div className="w-[45%] flex justify-end">
           {renderCharacter(activeRight, false)}
         </div>
       </main>
 
       {/* Bottom Segment: UI, controls, and dialog box */}
-      <footer className="relative z-20 bg-gradient-to-t from-black via-black/95 to-transparent pt-6 pb-6 px-4 md:px-8">
-        <div className="max-w-4xl mx-auto flex flex-col gap-3">
+      <footer className="relative z-20 bg-gradient-to-t from-black via-black/95 to-transparent pt-3 pb-3 sm:pt-5 sm:pb-6 px-3 sm:px-6 md:px-8">
+        <div className="max-w-4xl mx-auto flex flex-col gap-2.5">
           
           {/* Sub-Controller Rails */}
-          <div className="flex items-center justify-between px-1">
+          <div className="flex flex-col gap-2 min-[520px]:flex-row min-[520px]:items-center min-[520px]:justify-between px-1">
             {/* Progress counter */}
-            <div className="text-[10px] font-mono text-zinc-400 bg-black/60 px-3 py-1 rounded-full border border-white/5">
-              SCENE PROGRESS:{' '}
+            <div className="text-[9px] sm:text-[10px] font-mono text-zinc-400 bg-black/60 px-3 py-1 rounded-full border border-white/5 self-start min-[520px]:self-auto">
+              PROGRESS:{' '}
               <span className="text-yellow-400 font-bold">
                 {dialogueLinesLeftCount.completed}
               </span>{' '}
@@ -573,20 +625,20 @@ export default function AdventureGameView({
             </div>
 
             {/* Novel mode options */}
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
               <button
                 onClick={() => {
                   setIsSkip(false);
                   setIsAutoplay(!isAutoplay);
                 }}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold transition-all border cursor-pointer ${
+                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-[9px] sm:text-[10px] font-bold transition-all border cursor-pointer ${
                   isAutoplay
                     ? 'bg-amber-600 text-white border-amber-500 font-black animate-pulse'
                     : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white'
                 }`}
               >
-                <Play className="w-3 h-3 fill-current" />
-                <span>オート再生: {isAutoplay ? "ON" : "OFF"}</span>
+                <Play className="w-2.5 h-2.5 sm:w-3 h-3 fill-current" />
+                <span>オート: {isAutoplay ? "ON" : "OFF"}</span>
               </button>
 
               <button
@@ -594,22 +646,22 @@ export default function AdventureGameView({
                   setIsAutoplay(false);
                   setIsSkip(!isSkip);
                 }}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold transition-all border cursor-pointer ${
+                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-[9px] sm:text-[10px] font-bold transition-all border cursor-pointer ${
                   isSkip
                     ? 'bg-rose-600 text-white border-rose-500 font-black'
                     : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white'
                 }`}
                 title="セリフ演出をスキップして高速で進めます"
               >
-                <FastForward className="w-3 h-3" />
+                <FastForward className="w-2.5 h-2.5 sm:w-3 h-3" />
                 <span>スキップ: {isSkip ? "ON" : "OFF"}</span>
               </button>
 
               <button
                 onClick={handleReset}
-                className="flex items-center gap-1 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-400 hover:text-white px-3 py-1 rounded-full text-[10px] transition-colors cursor-pointer"
+                className="flex items-center gap-1 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-400 hover:text-white px-2.5 sm:px-3 py-1 rounded-full text-[9px] sm:text-[10px] transition-colors cursor-pointer"
               >
-                <RotateCcw className="w-3 h-3" />
+                <RotateCcw className="w-2.5 h-2.5 sm:w-3 h-3" />
                 <span>最初から</span>
               </button>
             </div>
@@ -618,7 +670,7 @@ export default function AdventureGameView({
           {/* Interactive Dialogue container */}
           <div
             onClick={handleNext}
-            className={`group relative min-h-[140px] rounded-2xl p-5 md:p-6 shadow-2xl transition-all cursor-pointer select-none backdrop-blur border bg-black/75 hover:bg-black/85 ${
+            className={`group relative min-h-[105px] sm:min-h-[135px] rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 shadow-2xl transition-all cursor-pointer select-none backdrop-blur border bg-black/75 hover:bg-black/85 ${
               resolvedSpeakerConfig ? 'border-zinc-700 ring-2 ring-white/5 shadow-white/5' : 'border-zinc-800'
             }`}
             id="dialogue-click-box"
@@ -632,7 +684,7 @@ export default function AdventureGameView({
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -5 }}
                   style={{ backgroundColor: resolvedSpeakerConfig.color }}
-                  className="absolute -top-3.5 left-6 px-4 py-1 rounded-lg text-white font-black text-xs tracking-wider uppercase shadow-md border border-white/20 whitespace-nowrap"
+                  className="absolute -top-3 left-4 sm:left-6 px-3 sm:px-4 py-0.5 sm:py-1 rounded-md sm:rounded-lg text-white font-black text-[10px] sm:text-xs tracking-wider uppercase shadow-md border border-white/20 whitespace-nowrap"
                 >
                   {resolvedSpeakerConfig.displayName}
                 </motion.div>
@@ -643,7 +695,7 @@ export default function AdventureGameView({
                   initial={{ opacity: 0, y: 5 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -5 }}
-                  className="absolute -top-3.5 left-6 bg-zinc-700 px-4 py-1 rounded-lg text-white font-black text-xs tracking-wider uppercase shadow-md border border-white/20 whitespace-nowrap"
+                  className="absolute -top-3 left-4 sm:left-6 bg-zinc-700 px-3 sm:px-4 py-0.5 sm:py-1 rounded-md sm:rounded-lg text-white font-black text-[10px] sm:text-xs tracking-wider uppercase shadow-md border border-white/20 whitespace-nowrap"
                 >
                   {currentStep.speaker}
                 </motion.div>
@@ -651,35 +703,35 @@ export default function AdventureGameView({
             </AnimatePresence>
 
             {/* Main Text Content */}
-            <div className="text-sm md:text-base leading-relaxed font-medium md:font-bold tracking-wide mt-2">
+            <div className="text-xs sm:text-sm md:text-base leading-relaxed font-semibold sm:font-bold tracking-wide mt-1.5 sm:mt-2">
               {currentStep ? (
                 currentStep.type === 'click-wait' ? (
-                  <span className="text-yellow-400 font-mono italic animate-pulse">
+                  <span className="text-yellow-400 font-mono italic animate-pulse text-[11px] sm:text-sm">
                     ーーー クリックでストーリーを進行 ーーー
                   </span>
                 ) : (
                   <span>
                     {typedText}
                     {isTyping && (
-                      <span className="inline-block w-1 h-4 ml-1 bg-yellow-400 animate-ping" />
+                      <span className="inline-block w-1.5 h-3.5 ml-1 bg-yellow-400 animate-pulse" />
                     )}
                   </span>
                 )
               ) : (
-                <div className="text-center py-6">
-                  <h3 className="text-sm font-bold text-zinc-400">シナリオの終わりに到達しました</h3>
-                  <p className="text-[11px] text-zinc-500 mt-1">「最初から」ボタンで再度体験するか、右上の×ボタンで記事編集に戻れます。</p>
+                <div className="text-center py-4 sm:py-6">
+                  <h3 className="text-xs sm:text-sm font-bold text-zinc-400">シナリオの終わりに到達しました</h3>
+                  <p className="text-[10px] sm:text-[11px] text-zinc-500 mt-1">「最初から」ボタンで再度体験するか、右上の×ボタンで記事編集に戻れます。</p>
                 </div>
               )}
             </div>
 
             {/* Glowing Advanced Trigger Icon */}
             {currentStep && (
-              <div className="absolute bottom-4 right-4 text-zinc-400 group-hover:text-yellow-400 hover:scale-110 transition-all flex items-center gap-1">
-                <span className="text-[10px] uppercase tracking-widest font-mono hidden sm:inline group-hover:opacity-100 opacity-60">
+              <div className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 text-zinc-400 group-hover:text-yellow-400 hover:scale-110 transition-all flex items-center gap-1">
+                <span className="text-[8px] sm:text-[10px] uppercase tracking-widest font-mono hidden sm:inline group-hover:opacity-100 opacity-60">
                   {isTyping ? "SKIP" : "NEXT"}
                 </span>
-                <ChevronRight className={`w-4 h-4 ${isTyping ? 'animate-bounce' : 'animate-pulse'}`} />
+                <ChevronRight className={`w-3.5 h-3.5 sm:w-4 h-4 ${isTyping ? 'animate-bounce' : 'animate-pulse'}`} />
               </div>
             )}
           </div>

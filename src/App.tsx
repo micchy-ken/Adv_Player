@@ -11,7 +11,7 @@ import ScenarioManager from './components/ScenarioManager';
 import AdventureGameView from './components/AdventureGameView';
 import { parseBlogContent, extractEntryLinks } from './utils/parser';
 import { useLocalStorage } from './hooks/useLocalStorage';
-import { BookOpen, Sliders, Play, Github, Gamepad2, Info, Share2, Copy, Check, Blocks, Link } from 'lucide-react';
+import { BookOpen, Sliders, Play, Github, Gamepad2, Info, Share2, Copy, Check, Blocks, Link, RotateCcw } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 
 const extractTextFromHtml = (htmlContent: string) => {
@@ -869,33 +869,62 @@ export default function App() {
 
       {/* Full-screen Loading Overlay for URL Proxy fetching */}
       <AnimatePresence>
-        {isLoadingUrl && (
+        {isLoadingUrl && !urlFetchError && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/85 backdrop-blur-sm px-4"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/80 backdrop-blur-md px-4"
           >
-            <div className="bg-white p-6 md:p-8 rounded-2xl shadow-2xl flex flex-col items-center gap-5 max-w-lg w-full text-center border border-zinc-200">
+            <div className="bg-white p-8 rounded-2xl shadow-2xl flex flex-col items-center gap-5 max-w-sm w-full text-center border border-zinc-100 animate-fade-in">
               <div className="relative flex items-center justify-center">
-                <div className="w-14 h-14 border-4 border-emerald-100 border-t-emerald-600 rounded-full animate-spin"></div>
-                <Gamepad2 className="w-5 h-5 text-emerald-600 absolute animate-pulse" />
+                <div className="w-16 h-16 border-4 border-emerald-100 border-t-emerald-600 rounded-full animate-spin"></div>
+                <Gamepad2 className="w-6 h-6 text-emerald-600 absolute animate-pulse" />
               </div>
+              <div className="space-y-2">
+                <p className="text-base font-black text-zinc-900 tracking-tight">シナリオを読み込んでいます...</p>
+                <p className="text-[11px] text-zinc-500 leading-relaxed">
+                  外部ブログの記事から会話劇プログラムを抽出しています。しばらくお待ちください。
+                </p>
+              </div>
+              <div className="w-full bg-zinc-100 h-1.5 rounded-full overflow-hidden relative">
+                <div className="absolute top-0 bottom-0 left-0 bg-emerald-500 rounded-full animate-progress-bar w-[60%]"></div>
+              </div>
+              <div className="text-[9.5px] text-zinc-400 font-bold">
+                ※CORS制限とモバイル転送の自動迂回処理を実行中
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Full-screen Error & Diagnostic Log Overlay */}
+      <AnimatePresence>
+        {urlFetchError && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/90 backdrop-blur-md px-4 overflow-y-auto py-8"
+          >
+            <div className="bg-white p-6 md:p-8 rounded-2xl shadow-2xl flex flex-col items-center gap-5 max-w-xl w-full text-center border border-red-100 my-auto">
+              <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center shrink-0">
+                <Info className="w-6 h-6 stroke-[2.5]" />
+              </div>
+              
               <div className="space-y-1.5">
-                <p className="text-lg font-black text-zinc-900 tracking-tight">シナリオを分析・展開中</p>
-                <p className="text-xs text-zinc-500 font-medium">
-                  アメブロからアドベンチャースクリプトを抽出しています...
+                <p className="text-lg font-black text-red-600 tracking-tight">シナリオの取得に失敗しました</p>
+                <p className="text-xs text-zinc-650 leading-relaxed text-left bg-red-50/50 p-3.5 rounded-xl border border-red-100/60 font-medium">
+                  {urlFetchError}
                 </p>
               </div>
 
               {/* Real-time Loading Steps Log */}
               {fetchLogs.length > 0 && (
                 <div className="w-full mt-2 text-left bg-zinc-950 border border-zinc-900 rounded-xl p-3.5 space-y-2 shadow-inner">
-                  <div className="flex items-center justify-between pb-1 border-b border-zinc-800 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
-                    <span>進行ステータス ログ</span>
-                    <span className="text-emerald-500 animate-pulse font-mono">
-                      {fetchLogs[fetchLogs.length - 1]?.includes('成功') ? 'COMPLETED' : 'PROCESSING...'}
-                    </span>
+                  <div className="flex items-center justify-between pb-1 border-b border-zinc-805 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+                    <span>障害解析デバッグログ</span>
+                    <span className="text-red-500 font-mono">FAILED</span>
                   </div>
                   <div className="font-mono text-[10.5px] max-h-40 overflow-y-auto space-y-1 pr-1 text-zinc-350 select-text leading-normal scrollbar-thin scrollbar-thumb-zinc-800">
                     {fetchLogs.map((log, index) => {
@@ -913,8 +942,26 @@ export default function App() {
                 </div>
               )}
 
-              <div className="text-[10px] text-zinc-400 font-bold flex gap-2 justify-center">
-                <span>※ PCでは最速で読み込めます。スマホ独自のCORS制限は迂回処理を試みます。</span>
+              <div className="flex gap-3 w-full mt-2">
+                <button
+                  onClick={() => {
+                    setUrlFetchError(null);
+                    setIsLoadingUrl(false);
+                  }}
+                  className="flex-1 py-3 bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-xs rounded-xl transition-all cursor-pointer shadow-subtle"
+                >
+                  閉じる
+                </button>
+                <button
+                  onClick={() => {
+                    setUrlFetchError(null);
+                    fetchScenarioFromUrl(integrationBlogUrl);
+                  }}
+                  className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition-all cursor-pointer shadow-md inline-flex items-center justify-center gap-1"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>再試行する</span>
+                </button>
               </div>
             </div>
           </motion.div>
