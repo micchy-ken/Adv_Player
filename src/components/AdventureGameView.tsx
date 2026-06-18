@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { ParsedScenario, ScenarioConfig, DialogueItem } from '../types';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { ParsedScenario, ScenarioConfig, DialogueItem, CharacterConfig } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { Play, RotateCcw, Volume2, VolumeX, X, ChevronRight, CornerDownLeft, Eye, MessageSquare, FastForward } from 'lucide-react';
 
@@ -101,6 +101,9 @@ export default function AdventureGameView({
   // Backlog logs previous dialogue strings
   const [backlog, setBacklog] = useState<{ speakerName?: string; text: string; color?: string }[]>([]);
 
+  const [activeLeft, setActiveLeft] = useState<CharacterConfig | null>(null);
+  const [activeRight, setActiveRight] = useState<CharacterConfig | null>(null);
+
   // Sync mute setting
   useEffect(() => {
     audioSynth.isMuted = isMuted;
@@ -122,7 +125,7 @@ export default function AdventureGameView({
   }, [scenario, currentIndex]);
 
   // Helper to find character config by speaker key or displayName
-  const findCharacterConfig = (speaker: string | undefined) => {
+  const findCharacterConfig = useCallback((speaker: string | undefined) => {
     if (!speaker) return null;
     const cleanSpeaker = speaker.trim();
     // Exact key match
@@ -169,7 +172,7 @@ export default function AdventureGameView({
     if (foundByKeyMatch) return foundByKeyMatch;
 
     return null;
-  };
+  }, [config]);
 
   // Play intro sound on start
   useEffect(() => {
@@ -334,59 +337,83 @@ export default function AdventureGameView({
     audioSynth.playIntro();
   };
 
-  // Determine active speaker highlight
   const activeSpeakerKey = currentStep?.speaker;
   const resolvedSpeakerConfig = findCharacterConfig(activeSpeakerKey);
 
+  // Update active left/right characters based on who is speaking
+  useEffect(() => {
+    const configData = findCharacterConfig(activeSpeakerKey);
+    if (configData) {
+      if (configData.position === 'left') {
+        setActiveLeft(configData);
+      } else if (configData.position === 'right') {
+        setActiveRight(configData);
+      } else {
+        // Fallback for missing position
+        setActiveLeft(configData);
+      }
+    }
+  }, [activeSpeakerKey, findCharacterConfig]);
+
+  // Fallback if activeLeft or activeRight are not set yet but we have characters in config
+  useEffect(() => {
+    if (!activeLeft) {
+      const leftChar = Object.values(config.characters).find(c => c.position === 'left');
+      if (leftChar) setActiveLeft(leftChar);
+    }
+    if (!activeRight) {
+      const rightChar = Object.values(config.characters).find(c => c.position === 'right');
+      if (rightChar) setActiveRight(rightChar);
+    }
+  }, [config.characters, activeLeft, activeRight]);
+
   // Render character entries
-  const renderedCharacters = useMemo(() => {
-    return Object.values(config.characters).map((charConfig) => {
-      const isSpeaking = resolvedSpeakerConfig?.key === charConfig.key;
-      const existsOnStage = currentStep?.type === 'dialogue'; // hide or grey out when click waits
-      const isLeft = charConfig.position === 'left';
+  const renderCharacter = (charConfig: CharacterConfig | null, styleIsLeft: boolean) => {
+    if (!charConfig) return null;
+    const isSpeaking = findCharacterConfig(activeSpeakerKey)?.key === charConfig.key;
+    const existsOnStage = currentStep?.type === 'dialogue'; // hide or grey out when click waits
 
-      // Decide sprite classes based on active state
-      const highlightClass = isSpeaking
-        ? 'brightness-100 contrast-100 scale-105 z-20 shadow-2xl ring-4 ring-white/50'
-        : 'brightness-50 contrast-90 scale-95 z-10';
+    // Decide sprite classes based on active state
+    const highlightClass = isSpeaking
+      ? 'brightness-100 contrast-100 scale-105 z-20 shadow-2xl ring-4 ring-white/50'
+      : 'brightness-50 contrast-90 scale-95 z-10';
 
-      return (
-        <motion.div
-          key={charConfig.key}
-          initial={{ opacity: 0, x: isLeft ? -120 : 120, y: 20 }}
-          animate={{ opacity: existsOnStage ? 1 : 0.6, x: 0, y: 0 }}
-          exit={{ opacity: 0, x: isLeft ? -100 : 100 }}
-          transition={{ type: 'spring', stiffness: 80, damping: 15 }}
-          className={`flex flex-col items-center pointer-events-none select-none max-w-[200px] sm:max-w-[250px] transition-all duration-300 ${highlightClass}`}
+    return (
+      <motion.div
+        key={charConfig.key}
+        initial={{ opacity: 0, x: styleIsLeft ? -120 : 120, y: 20 }}
+        animate={{ opacity: existsOnStage ? 1 : 0.6, x: 0, y: 0 }}
+        exit={{ opacity: 0, x: styleIsLeft ? -100 : 100 }}
+        transition={{ type: 'spring', stiffness: 80, damping: 15 }}
+        className={`flex flex-col items-center pointer-events-none select-none max-w-[200px] sm:max-w-[250px] transition-all duration-300 ${highlightClass}`}
+      >
+        {/* Avatar frame */}
+        <div className="relative rounded-2xl overflow-hidden border-4 border-zinc-900 bg-zinc-800 shadow-xl aspect-square w-32 sm:w-44 md:w-52">
+          <img
+            src={charConfig.avatarUrl}
+            alt={charConfig.displayName}
+            referrerPolicy="no-referrer"
+            className="w-full h-full object-cover"
+          />
+          
+          {/* Status light tag */}
+          {isSpeaking && (
+            <div className="absolute top-2 right-2 bg-rose-500 text-[9px] text-white px-1.5 py-0.5 rounded font-black tracking-widest uppercase animate-pulse">
+              TALKING
+            </div>
+          )}
+        </div>
+
+        {/* Label banner */}
+        <div
+          style={{ backgroundColor: charConfig.color }}
+          className="mt-3 px-4 py-1.5 rounded-lg text-white font-bold text-xs sm:text-sm tracking-wide shadow-md border border-white/20 whitespace-nowrap min-w-[100px] text-center"
         >
-          {/* Avatar frame */}
-          <div className="relative rounded-2xl overflow-hidden border-4 border-zinc-900 bg-zinc-800 shadow-xl aspect-square w-32 sm:w-44 md:w-52">
-            <img
-              src={charConfig.avatarUrl}
-              alt={charConfig.displayName}
-              referrerPolicy="no-referrer"
-              className="w-full h-full object-cover"
-            />
-            
-            {/* Status light tag */}
-            {isSpeaking && (
-              <div className="absolute top-2 right-2 bg-rose-500 text-[9px] text-white px-1.5 py-0.5 rounded font-black tracking-widest uppercase animate-pulse">
-                TALKING
-              </div>
-            )}
-          </div>
-
-          {/* Label banner */}
-          <div
-            style={{ backgroundColor: charConfig.color }}
-            className="mt-3 px-4 py-1.5 rounded-lg text-white font-bold text-xs sm:text-sm tracking-wide shadow-md border border-white/20 whitespace-nowrap min-w-[100px] text-center"
-          >
-            {charConfig.displayName}
-          </div>
-        </motion.div>
-      );
-    });
-  }, [config, activeSpeakerKey, currentStep]);
+          {charConfig.displayName}
+        </div>
+      </motion.div>
+    );
+  };
 
   return (
     <div
@@ -459,7 +486,7 @@ export default function AdventureGameView({
 
         {/* Left Character Slot */}
         <div className="w-1/3 flex justify-start">
-          {renderedCharacters.filter((_, idx) => idx % 2 === 0)}
+          {renderCharacter(activeLeft, true)}
         </div>
 
         {/* Center / Narrator Slot or Info Indicator */}
@@ -468,7 +495,7 @@ export default function AdventureGameView({
 
         {/* Right Character Slot */}
         <div className="w-1/3 flex justify-end">
-          {renderedCharacters.filter((_, idx) => idx % 2 !== 0)}
+          {renderCharacter(activeRight, false)}
         </div>
       </main>
 

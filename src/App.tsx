@@ -10,12 +10,32 @@ import BlogEditor from './components/BlogEditor';
 import ScenarioManager from './components/ScenarioManager';
 import AdventureGameView from './components/AdventureGameView';
 import { parseBlogContent } from './utils/parser';
+import { useLocalStorage } from './hooks/useLocalStorage';
 import { BookOpen, Sliders, Play, Github, Gamepad2, Info, Share2, Copy, Check, Blocks, Link } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 
+const extractTextFromHtml = (htmlContent: string) => {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(htmlContent, 'text/html');
+  Array.from(doc.querySelectorAll('script, style, noscript, iframe, link, meta')).forEach(el => el.remove());
+  let cleanText = "";
+  if (doc.body) {
+    let html = doc.body.innerHTML;
+    // Replace text-breaking tags with actual newlines to preserve visual structure
+    html = html.replace(/<br[^>]*>/gi, '\n');
+    html = html.replace(/<\/?(div|p|h[1-6]|li|tr|article|section|blockquote)[^>]*>/gi, '\n');
+    const parser2 = new DOMParser();
+    const doc2 = parser2.parseFromString(html, 'text/html');
+    cleanText = doc2.body.textContent || '';
+  } else {
+    cleanText = htmlContent.replace(/<[^>]*>/g, '\n');
+  }
+  return cleanText.replace(/&nbsp;/g, ' ').replace(/\u00A0/g, ' ');
+};
+
 export default function App() {
-  const [blogs, setBlogs] = useState<BlogItem[]>(DEFAULT_BLOGS);
-  const [scenarios, setScenarios] = useState<Record<string, ScenarioConfig>>(DEFAULT_SCENARIOS);
+  const [blogs, setBlogs] = useLocalStorage<BlogItem[]>('adventure-blogs', DEFAULT_BLOGS);
+  const [scenarios, setScenarios] = useLocalStorage<Record<string, ScenarioConfig>>('adventure-scenarios', DEFAULT_SCENARIOS);
   const [selectedBlogId, setSelectedBlogId] = useState<string>(DEFAULT_BLOGS[0]?.id || '');
   const [activeTab, setActiveTab] = useState<'editor' | 'scenarios' | 'integration'>('editor');
   const [copiedText, setCopiedText] = useState(false);
@@ -63,6 +83,10 @@ export default function App() {
 
       // B. Load from external Blog URL (if CORS permits or utilizing free proxy fallback)
       let blogUrlParam = searchParams.get('url') || searchParams.get('blog_url');
+      if (blogUrlParam) {
+        const extractedUrl = blogUrlParam.match(/https?:\/\/[^\s]+/);
+        if (extractedUrl) blogUrlParam = extractedUrl[0];
+      }
       
       // (NEW) C. Load from Referrer if requested (e.g. ?auto=1)
       const autoRefParam = searchParams.get('auto') || searchParams.get('auto_ref');
@@ -78,20 +102,7 @@ export default function App() {
           const directRes = await fetch(blogUrlParam);
           if (directRes.ok) {
             const htmlContent = await directRes.text();
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(htmlContent, 'text/html');
-            Array.from(doc.querySelectorAll('script, style, noscript, iframe, link, meta')).forEach(el => el.remove());
-            let cleanText = "";
-            if (doc.body) {
-              let html = doc.body.innerHTML;
-              html = html.replace(/<br\s*\/?>/gi, '\n').replace(/<\/(p|div|h[1-6]|li)>/gi, '\n').replace(/<[^>]+>/g, '');
-              const temp = document.createElement('textarea');
-              temp.innerHTML = html;
-              cleanText = temp.value;
-            } else {
-              cleanText = htmlContent.replace(/<[^>]*>/g, '\n');
-            }
-            cleanText = cleanText.replace(/&nbsp;/g, ' ').replace(/\u00A0/g, ' ');
+            const cleanText = extractTextFromHtml(htmlContent);
 
             const parsed = parseBlogContent(cleanText);
             if (parsed && parsed.length > 0) {
@@ -116,24 +127,7 @@ export default function App() {
               const data = await response.json();
               const htmlContent = data.contents;
               if (htmlContent) {
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(htmlContent, 'text/html');
-                Array.from(doc.querySelectorAll('script, style, noscript, iframe, link, meta')).forEach(el => el.remove());
-                
-                let cleanText = "";
-                if (doc.body) {
-                  let html = doc.body.innerHTML;
-                  // Replace tags that usually mean a new line
-                  html = html.replace(/<br\s*\/?>/gi, '\n').replace(/<\/(p|div|h[1-6]|li|tr)>/gi, '\n');
-                  // Parse again to easily extract text and decode HTML entities while preserving \n
-                  const parser2 = new DOMParser();
-                  const doc2 = parser2.parseFromString(html, 'text/html');
-                  cleanText = doc2.body.textContent || '';
-                } else {
-                  cleanText = htmlContent.replace(/<[^>]*>/g, '\n');
-                }
-                cleanText = cleanText.replace(/&nbsp;/g, ' ').replace(/\u00A0/g, ' ');
-                
+                const cleanText = extractTextFromHtml(htmlContent);
                 const parsed = parseBlogContent(cleanText);
                 if (parsed && parsed.length > 0) {
                   setActivePlayScenario(parsed[0]);
