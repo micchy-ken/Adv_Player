@@ -81,7 +81,16 @@ export default function App() {
             const parser = new DOMParser();
             const doc = parser.parseFromString(htmlContent, 'text/html');
             Array.from(doc.querySelectorAll('script, style, noscript, iframe, link, meta')).forEach(el => el.remove());
-            let cleanText = doc.body ? doc.body.textContent || "" : htmlContent.replace(/<[^>]*>/g, '\n');
+            let cleanText = "";
+            if (doc.body) {
+              let html = doc.body.innerHTML;
+              html = html.replace(/<br\s*\/?>/gi, '\n').replace(/<\/(p|div|h[1-6]|li)>/gi, '\n').replace(/<[^>]+>/g, '');
+              const temp = document.createElement('textarea');
+              temp.innerHTML = html;
+              cleanText = temp.value;
+            } else {
+              cleanText = htmlContent.replace(/<[^>]*>/g, '\n');
+            }
             cleanText = cleanText.replace(/&nbsp;/g, ' ').replace(/\u00A0/g, ' ');
 
             const parsed = parseBlogContent(cleanText);
@@ -111,7 +120,16 @@ export default function App() {
                 const doc = parser.parseFromString(htmlContent, 'text/html');
                 Array.from(doc.querySelectorAll('script, style, noscript, iframe, link, meta')).forEach(el => el.remove());
                 
-                let cleanText = doc.body ? doc.body.textContent || "" : htmlContent.replace(/<[^>]*>/g, '\n');
+                let cleanText = "";
+                if (doc.body) {
+                  let html = doc.body.innerHTML;
+                  html = html.replace(/<br\s*\/?>/gi, '\n').replace(/<\/(p|div|h[1-6]|li)>/gi, '\n').replace(/<[^>]+>/g, '');
+                  const temp = document.createElement('textarea');
+                  temp.innerHTML = html;
+                  cleanText = temp.value;
+                } else {
+                  cleanText = htmlContent.replace(/<[^>]*>/g, '\n');
+                }
                 cleanText = cleanText.replace(/&nbsp;/g, ' ').replace(/\u00A0/g, ' ');
                 
                 const parsed = parseBlogContent(cleanText);
