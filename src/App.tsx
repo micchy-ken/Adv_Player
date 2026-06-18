@@ -180,54 +180,75 @@ export default function App() {
           : `${blogUrlParam}?_=${Date.now()}`;
 
         try {
-          // First, try direct fetch. This works if they are on same origin or CORS is allowed.
-          const directRes = await fetch(cleanFetchUrl, { cache: 'no-store' });
-          if (directRes.ok) {
-            const htmlContent = await directRes.text();
-            const cleanText = extractTextFromHtml(htmlContent);
-
-            const parsed = parseBlogContent(cleanText);
-            if (parsed && parsed.length > 0) {
-              setActivePlayScenario(parsed[0]);
-              setIsLoadingUrl(false);
-              return;
-            } else {
-              console.warn("Direct fetch found no scenarios.");
-              setUrlFetchError("直接読み込んだ記事内にシナリオタグが見つかりませんでした。");
+          // 1. Primary Method: Fetch using our dedicated server-side PC-User-Agent Proxy.
+          // This entirely prevents target servers (like Ameblo) from serving incomplete / redirected mobile SPA HTML.
+          const localProxyUrl = `/api/proxy?url=${encodeURIComponent(cleanFetchUrl)}`;
+          console.log("Fetching blog via local PC-User-Agent proxy:", localProxyUrl);
+          const response = await fetch(localProxyUrl, { cache: 'no-store' });
+          if (response.ok) {
+            const htmlContent = await response.text();
+            if (htmlContent && htmlContent.trim()) {
+              const cleanText = extractTextFromHtml(htmlContent);
+              const parsed = parseBlogContent(cleanText);
+              if (parsed && parsed.length > 0) {
+                console.log("Successfully fetched and parsed blog scenario via local proxy!");
+                setActivePlayScenario(parsed[0]);
+                setIsLoadingUrl(false);
+                return;
+              } else {
+                console.warn("Local proxy fetch succeeded, but did not find any scenario tags.", parsed);
+                // Fall down to next checks or show elegant err
+              }
             }
-          } else {
-             throw new Error("Direct fetch failed: " + directRes.status);
           }
-        } catch (e) {
-          console.warn("Direct fetch failed, attempting proxy fallback:", e);
+          throw new Error("Local proxy did not return valid scenario.");
+        } catch (localProxyError) {
+          console.warn("Local API proxy failed or returned invalid markup, falling back to allorigins / direct:", localProxyError);
+          
           try {
-            // Use a public CORS proxy helper for user simplicity.
-            // We include the cleanFetchUrl (with its cache-buster timestamp) inside the proxy URI 
-            // and add a proxy-level cache-buster parameter to guarantee non-cached real-time response!
-            const corsProxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(cleanFetchUrl)}&_=${Date.now()}`;
-            const response = await fetch(corsProxyUrl, { cache: 'no-store' });
-            if (response.ok) {
-              const data = await response.json();
-              const htmlContent = data.contents;
-              if (htmlContent) {
-                const cleanText = extractTextFromHtml(htmlContent);
-                const parsed = parseBlogContent(cleanText);
-                if (parsed && parsed.length > 0) {
-                  setActivePlayScenario(parsed[0]);
-                  setIsLoadingUrl(false);
-                  return;
+            // Backup Method: Use Direct Fetch (works if same origin / CORS allowed)
+            const directRes = await fetch(cleanFetchUrl, { cache: 'no-store' });
+            if (directRes.ok) {
+              const htmlContent = await directRes.text();
+              const cleanText = extractTextFromHtml(htmlContent);
+
+              const parsed = parseBlogContent(cleanText);
+              if (parsed && parsed.length > 0) {
+                setActivePlayScenario(parsed[0]);
+                setIsLoadingUrl(false);
+                return;
+              }
+            }
+            throw new Error("Direct fetch failed or had no scenarios");
+          } catch (e) {
+            console.warn("Direct fetch fail, trying public allorigins.win proxy:", e);
+            try {
+              // Backup Method 2: Public allorigins.win CORS proxy
+              const corsProxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(cleanFetchUrl)}&_=${Date.now()}`;
+              const response = await fetch(corsProxyUrl, { cache: 'no-store' });
+              if (response.ok) {
+                const data = await response.json();
+                const htmlContent = data.contents;
+                if (htmlContent) {
+                  const cleanText = extractTextFromHtml(htmlContent);
+                  const parsed = parseBlogContent(cleanText);
+                  if (parsed && parsed.length > 0) {
+                    setActivePlayScenario(parsed[0]);
+                    setIsLoadingUrl(false);
+                    return;
+                  } else {
+                    setUrlFetchError("ブログの読み込みに成功しましたが、記事内にシナリオタグ (【タイトル】 などのシーン設定) が見つかりませんでした。");
+                  }
                 } else {
-                  setUrlFetchError("ブログの読み込みに成功しましたが、記事内にシナリオタグ (【タイトル】 など) が見つかりませんでした。");
+                  setUrlFetchError("ブログのコンテンツが空でした。URLを確認してください。");
                 }
               } else {
-                 setUrlFetchError("ブログのコンテンツが空でした。URLを確認してください。");
+                setUrlFetchError(`プロキシサーバーエラー (${response.status})。ブログの読み込みに失敗しました。`);
               }
-            } else {
-               setUrlFetchError(`プロキシサーバーエラー (${response.status})。ブログの読み込みに失敗しました。`);
+            } catch (err) {
+              console.error("Proxy fetch also failed:", err);
+              setUrlFetchError("ブログの読み込みに完全に失敗しました。URLが無効、またはCORS制限の可能性があります。");
             }
-          } catch (err) {
-            console.error("Proxy fetch also failed:", err);
-            setUrlFetchError("ブログの読み込みに完全に失敗しました。CORS制限またはURLが無効な可能性があります。");
           }
         }
         setIsLoadingUrl(false);
