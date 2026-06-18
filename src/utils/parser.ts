@@ -186,3 +186,63 @@ export function parseBlogContent(content: string): ParsedScenario[] {
   // retry without title-seen gating to ensure we capture the scenarios!
   return runParse(true);
 }
+
+/**
+ * Extracts links to individual blog entries from direct HTML content.
+ * This handles ameblo and hatenablog top/list pages.
+ */
+export function extractEntryLinks(html: string, baseUrl: string): { url: string; title: string }[] {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+  const links: { url: string; title: string }[] = [];
+  const seenUrls = new Set<string>();
+
+  // Resolve base domain info for relative links
+  let origin = "";
+  try {
+    const u = new URL(baseUrl);
+    origin = u.origin;
+  } catch (e) {
+    return [];
+  }
+
+  const anchors = Array.from(doc.querySelectorAll('a[href]'));
+  
+  anchors.forEach(a => {
+    let href = a.getAttribute('href') || '';
+    if (!href) return;
+
+    // Convert relative paths to fully qualified URLs
+    if (href.startsWith('/')) {
+      href = origin + href;
+    } else if (!href.startsWith('http')) {
+      return;
+    }
+
+    // Strip trailing query parameters
+    try {
+      const urlObj = new URL(href);
+      const keysToRemove = ["frm_id", "device_id", "amba", "gamp", "amp", "page", "device"];
+      keysToRemove.forEach(k => urlObj.searchParams.delete(k));
+      href = urlObj.toString();
+    } catch(e) {}
+
+    // Major blog entry checks
+    const isAmebloEntry = href.match(/https:\/\/ameblo\.jp\/[a-zA-Z0-9_-]+\/entry-\d+\.html/);
+    const isHatenaEntry = href.match(/https:\/\/[a-zA-Z0-9_-]+\.hatenablog\.com\/entry\/\d{4}\/\d{2}\/\d{2}\/\d+/) ||
+                          href.match(/https:\/\/[a-zA-Z0-9_-]+\.hatenablog\.com\/entry\/[a-zA-Z0-9_-]+/) ||
+                          href.includes('.hatenablog.com/entry/');
+
+    if ((isAmebloEntry || isHatenaEntry) && !seenUrls.has(href)) {
+      seenUrls.add(href);
+      const linkText = (a.textContent || '').replace(/\s+/g, ' ').trim();
+      links.push({
+        url: href,
+        title: linkText || "記事へ"
+      });
+    }
+  });
+
+  return links.slice(0, 15); // limit output to top 15 entry links
+}
+

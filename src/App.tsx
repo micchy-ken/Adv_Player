@@ -9,7 +9,7 @@ import { DEFAULT_BLOGS, DEFAULT_SCENARIOS } from './data/scenarios';
 import BlogEditor from './components/BlogEditor';
 import ScenarioManager from './components/ScenarioManager';
 import AdventureGameView from './components/AdventureGameView';
-import { parseBlogContent } from './utils/parser';
+import { parseBlogContent, extractEntryLinks } from './utils/parser';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { BookOpen, Sliders, Play, Github, Gamepad2, Info, Share2, Copy, Check, Blocks, Link } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
@@ -77,31 +77,9 @@ const extractTextFromHtml = (htmlContent: string) => {
   // Clean heavy non-blog content elements first (such as headers, footers, navigation, sidebars)
   Array.from(finalDoc.querySelectorAll('script, style, noscript, iframe, link, meta, header, footer, nav, aside, .sidebar, .blog-sidebar, .comment-box, .profile-provider')).forEach(el => el.remove());
   
-  // BLOG SPECIFIC CONTENT EXTRACTION: Extract only from actual ARTICLE content tags if found to prevent sidebar keyword clutter from blocking the parser!
-  const contentSelectors = [
-    '.entry-content',           // Hatena Blog & Ameblo Article Content
-    '#entryBody',               // Ameblo PC
-    '.entry-body',              // Hatena Blog & Livedoor
-    '.article-body',            // Common Japanese Blogs
-    'article',                  // HTML5 Article tag
-    '[itemprop="articleBody"]', // SEO Schema articleBody
-    '.main-entry',              // Livedoor & others
-    '.post-body',               // Blogger & others
-    '.entryContent'             // FC2 & others
-  ];
-
-  let targetElement: Element | null = null;
-  for (const selector of contentSelectors) {
-    const found = finalDoc.querySelector(selector);
-    if (found) {
-      targetElement = found;
-      console.log(`Adv_Player: Targeted refined content container with selector: "${selector}"`);
-      break;
-    }
-  }
-
-  // Fallback to body if no refined content container is found
-  const rootElement = targetElement || finalDoc.body;
+  // Fallback to body to parse ALL content together rather than discarding everything except the first matched container.
+  // This is extremely important on main/list pages containing multiple posts!
+  const rootElement = finalDoc.body;
   
   let cleanText = "";
   if (rootElement) {
@@ -138,6 +116,197 @@ export default function App() {
     const timestamp = new Date().toLocaleTimeString('ja-JP', { hour12: false });
     setFetchLogs((prev) => [...prev, `[${timestamp}] ${msg}`]);
     console.log(`[Diagnostic] ${msg}`);
+  };
+
+  const [detectedLinks, setDetectedLinks] = useState<{ url: string; title: string }[]>([]);
+
+  const fetchScenarioFromUrl = async (blogUrlParam: string) => {
+    let finalCleanUrl = blogUrlParam;
+    
+    // Clean tracking & styling parameters that trigger mobile redirection in ameblo
+    try {
+      const urlObj = new URL(blogUrlParam);
+      if (urlObj.hostname.includes('ameblo.jp')) {
+        const keysToRemove = ['frm_id', 'device_id', 'amba', 'gamp', 'amp', 'page', 'device'];
+        keysToRemove.forEach(k => urlObj.searchParams.delete(k));
+        finalCleanUrl = urlObj.toString();
+      }
+    } catch(e: any) {
+      console.warn("Could not clean tracking params:", e);
+    }
+
+    setFetchLogs([]); // Reset diagnostic logs
+    setDetectedLinks([]); // Clear previous suggestions
+    setIsLoadingUrl(true);
+    setUrlFetchError(null);
+    setShowDebugLogs(true); // Automatically expand log drawer so the user can see real-time progress!
+
+    addLog(`=== 外部ブログのシナリオ取得プロセスを開始します ===`);
+    addLog(`入力URL: ${blogUrlParam}`);
+
+    if (blogUrlParam.includes('s.ameblo.jp')) {
+      addLog(`検出: アメブロモバイル専用ドメイン (s.ameblo.jp)。`);
+      addLog(`PC向けデスクトップレイアウトを強制するために ameblo.jp に書き換えます。`);
+      finalCleanUrl = finalCleanUrl.replace('s.ameblo.jp', 'ameblo.jp');
+      addLog(`書き換え后: ${finalCleanUrl}`);
+    }
+
+    addLog(`不要なトラッキングクエリのクリーンアップ完了.`);
+    
+    // Always append a cache-buster timestamp query parameters to bypass CORS / allorigins proxy caches
+    const cleanFetchUrl = finalCleanUrl.includes('?')
+      ? `${finalCleanUrl}&_=${Date.now()}`
+      : `${finalCleanUrl}?_=${Date.now()}`;
+
+    addLog(`キャッシュバスター（クエリ末尾のタイムスタンプ）を追加: ${cleanFetchUrl}`);
+
+    const tryParsingContent = (html: string, sourceName: string): boolean => {
+      if (!html || html.trim().length === 0) {
+        addLog(`[${sourceName}] 警告: 取得したHTMLが空でした。`);
+        return false;
+      }
+      
+      const displaySlice = html.substring(0, 150).replace(/\s+/g, ' ');
+      addLog(`[${sourceName}] HTML取得成功。サイズ: ${html.length}文字。先頭部分: "${displaySlice}..."`);
+      
+      // Detect router blocks, typical carrier filtering or local block pages served as status 200
+      if (html.includes('アクセス制限') || html.includes('アクセスが制限') || html.includes('Blocked') || html.includes('Forbidden') || html.includes('403 Forbidden') || html.includes('接続制限')) {
+        addLog(`[${sourceName}] 【警告】取得したHTMLにアクセス制限やエラー文言が含まれています。CORS規制やセキュリティ遮断の可能性があります。`);
+      }
+
+      addLog(`[${sourceName}] DOM本文抽出処理(extractTextFromHtml)を実行中...`);
+      const cleanText = extractTextFromHtml(html);
+      
+      const textSlice = cleanText.substring(0, 150).replace(/\s+/g, ' ');
+      addLog(`[${sourceName}] 本文抽出完了。抽出サイズ: ${cleanText.length}文字。抽出先頭: "${textSlice}..."`);
+      
+      addLog(`[${sourceName}] 本文からシナリオタグ（【タイトル】、シーン切り替えなど）を検索・パース中...`);
+      const parsed = parseBlogContent(cleanText);
+      
+      if (parsed && parsed.length > 0) {
+        addLog(`[${sourceName}] 大成功!!! ${parsed.length}つのシナリオを検出し、パースに成功しました。ゲームを起動します！`);
+        setActivePlayScenario(parsed[0]);
+        setIsLoadingUrl(false);
+        return true;
+      } else {
+        addLog(`[${sourceName}] パース警告: 抽出した本文テキスト内に【タイトル】などのシナリオ構文が見つかりませんでした。`);
+        
+        // Scan for potential post Links to help users navigate on top/list pages!
+        const links = extractEntryLinks(html, blogUrlParam);
+        if (links && links.length > 0) {
+          setDetectedLinks(links);
+          addLog(`[${sourceName}] 【お役立ち情報】ブログのトップページまたは一覧ページが指定された可能性があります。候補となる個別記事URLを ${links.length} 件検出しました。`);
+        }
+        return false;
+      }
+    };
+
+    // --- PHASE 1: METHOD 1 (Server-side PC Proxy) ---
+    try {
+      const localProxyUrl = `/api/proxy?url=${encodeURIComponent(cleanFetchUrl)}`;
+      addLog(`[方法1] サーバーサイド PC User-Agent プロキシを呼び出します...`);
+      addLog(`プロキシ転送先エンドポイント: ${localProxyUrl}`);
+      
+      const response = await fetch(localProxyUrl, { cache: 'no-store' });
+      addLog(`プロキシサーバーが HTTP ステータス ${response.status} で応答しました。`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.logs && Array.isArray(data.logs)) {
+          data.logs.forEach((backendLog: string) => {
+            addLog(`[Backend] ${backendLog}`);
+          });
+        }
+
+        if (data.success && data.html) {
+          if (tryParsingContent(data.html, "方法1:ローカルプロキシ")) return;
+        } else {
+          addLog(`サーバープロキシ警告: 処理ステータスが「失敗」です。理由: ${data.error || '不明'}`);
+        }
+      } else {
+        addLog(`ローカルプロバイダー接続エラー: HTTP ${response.status}`);
+      }
+    } catch (localProxyError: any) {
+      addLog(`[方法1 失敗] ローカルサーバー側プロキシでエラーが発生しました。理由: ${localProxyError.message || localProxyError}`);
+    }
+
+    // --- PHASE 2: METHOD 2 (Direct Client Fetch) ---
+    try {
+      addLog(`[方法2] クライアント側ダイレクトフェッチを試行します (CORS制限の解除確認)...`);
+      const directRes = await fetch(cleanFetchUrl, { cache: 'no-store' });
+      addLog(`ダイレクトフェッチ応答: HTTPステータス: ${directRes.status}`);
+      
+      if (directRes.ok) {
+        const htmlContent = await directRes.text();
+        if (tryParsingContent(htmlContent, "方法2:ダイレクトフェッチ")) return;
+      } else {
+        addLog(`ダイレクトフェッチ接続エラー: HTTP ${directRes.status}`);
+      }
+    } catch (directError: any) {
+      addLog(`[方法2 失敗] ダイレクトフェッチがCORSポリシーまたは接続制限によりブロックされました。理由: ${directError.message || directError}`);
+    }
+
+    // --- PHASE 3: METHOD 3 (Public High-speed Proxy: corsproxy.io) ---
+    try {
+      addLog(`[方法3] 超高速パブリックCORSプロキシ (corsproxy.io) 経由で取得を試みます...`);
+      const pUrl = `https://corsproxy.io/?url=${encodeURIComponent(cleanFetchUrl)}`;
+      addLog(`プロキシーURL: ${pUrl}`);
+      
+      const proxyRes = await fetch(pUrl, { cache: 'no-store' });
+      addLog(`corsproxy.io 応答: HTTP ${proxyRes.status}`);
+      
+      if (proxyRes.ok) {
+        const htmlContent = await proxyRes.text();
+        if (tryParsingContent(htmlContent, "方法3:corsproxy")) return;
+      } else {
+        addLog(`corsproxy.io がエラーを返しました。HTTP ${proxyRes.status}`);
+      }
+    } catch (e: any) {
+      addLog(`[方法3 失敗] corsproxy.io からのエラー: ${e.message || e}`);
+    }
+
+    // --- PHASE 4: METHOD 4 (Public Proxy: codetabs.com) ---
+    try {
+      addLog(`[方法4] 汎用CORSプロキシ (codetabs.com) を使ったクライアント側迂回を試みます...`);
+      const pUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(cleanFetchUrl)}`;
+      addLog(`プロキシーURL: ${pUrl}`);
+      
+      const proxyRes = await fetch(pUrl, { cache: 'no-store' });
+      addLog(`codetabs.com 応答: HTTP ${proxyRes.status}`);
+      
+      if (proxyRes.ok) {
+        const htmlContent = await proxyRes.text();
+        if (tryParsingContent(htmlContent, "方法4:codetabs")) return;
+      } else {
+        addLog(`codetabs.com がエラーを返しました。HTTP ${proxyRes.status}`);
+      }
+    } catch (e: any) {
+      addLog(`[方法4 失敗] codetabs.com からのエラー: ${e.message || e}`);
+    }
+
+    // --- PHASE 5: METHOD 5 (Backup Public Proxy: allorigins.win) ---
+    try {
+      addLog(`[方法5] 最終バックアッププロキシ (allorigins.win) を使った迂回を試みます...`);
+      const corsProxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(cleanFetchUrl)}&_=${Date.now()}`;
+      addLog(`フェッチ先: ${corsProxyUrl}`);
+      
+      const response = await fetch(corsProxyUrl, { cache: 'no-store' });
+      addLog(`allorigins.win 応答: HTTP ${response.status}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        const htmlContent = data.contents;
+        if (tryParsingContent(htmlContent, "方法5:allorigins")) return;
+      } else {
+        addLog(`alloriginsプロキシサーバーがエラーを返しました。HTTP: ${response.status}`);
+      }
+    } catch (err: any) {
+      addLog(`[方法5 失敗] パブリックCORSプロキシも動作しません。理由: ${err.message || err}`);
+    }
+
+    // --- UNABLE TO FETCH CONTEXTS (FATAL) ---
+    setUrlFetchError("ブログの自動抽出に完全に失敗しました。ブログ（はてなブログ、アメブロなど）に記述されている【タイトル】などのアドベンチャータグ定義が、全角括弧で正しく定義されているかご確認ください。また、手動で記事テキストをコピーして「記事の下書き編集」に貼り付けてテストすることも可能です。");
+    setIsLoadingUrl(false);
   };
 
   // 1. URL Query parameters initialization & 2. Window PostMessage receivers
@@ -189,183 +358,7 @@ export default function App() {
       }
 
       if (blogUrlParam) {
-        let finalCleanUrl = blogUrlParam;
-        // Clean tracking & styling parameters that trigger mobile redirection in ameblo
-        try {
-          const urlObj = new URL(blogUrlParam);
-          if (urlObj.hostname.includes('ameblo.jp')) {
-            const keysToRemove = ['frm_id', 'device_id', 'amba', 'gamp', 'amp', 'page', 'device'];
-            keysToRemove.forEach(k => urlObj.searchParams.delete(k));
-            finalCleanUrl = urlObj.toString();
-          }
-        } catch(e: any) {
-          console.warn("Could not clean tracking params:", e);
-        }
-
-        setFetchLogs([]); // Reset diagnostic logs
-        setIsLoadingUrl(true);
-        setUrlFetchError(null);
-        setShowDebugLogs(true); // Automatically expand log drawer so the user can see real-time progress!
-
-        addLog(`=== 外部ブログのシナリオ取得プロセスを開始します ===`);
-        addLog(`入力URL: ${blogUrlParam}`);
-
-        if (blogUrlParam.includes('s.ameblo.jp')) {
-          addLog(`検出: アメブロモバイル専用ドメイン (s.ameblo.jp)。`);
-          addLog(`PC向けデスクトップレイアウトを強制するために ameblo.jp に書き換えます。`);
-          finalCleanUrl = finalCleanUrl.replace('s.ameblo.jp', 'ameblo.jp');
-          addLog(`書き換え後: ${finalCleanUrl}`);
-        }
-
-        addLog(`不要なトラッキングクエリのクリーンアップ完了.`);
-        
-        // Always append a cache-buster timestamp query parameters to bypass CORS / allorigins proxy caches
-        const cleanFetchUrl = finalCleanUrl.includes('?')
-          ? `${finalCleanUrl}&_=${Date.now()}`
-          : `${finalCleanUrl}?_=${Date.now()}`;
-
-        addLog(`キャッシュバスター（クエリ末尾のタイムスタンプ）を追加: ${cleanFetchUrl}`);
-
-        const tryParsingContent = (html: string, sourceName: string): boolean => {
-          if (!html || html.trim().length === 0) {
-            addLog(`[${sourceName}] 警告: 取得したHTMLが空でした。`);
-            return false;
-          }
-          
-          const displaySlice = html.substring(0, 150).replace(/\s+/g, ' ');
-          addLog(`[${sourceName}] HTML取得成功。サイズ: ${html.length}文字。先頭部分: "${displaySlice}..."`);
-          
-          // Detect router blocks, typical carrier filtering or local block pages served as status 200
-          if (html.includes('アクセス制限') || html.includes('アクセスが制限') || html.includes('Blocked') || html.includes('Forbidden') || html.includes('403 Forbidden') || html.includes('接続制限')) {
-            addLog(`[${sourceName}] 【警告】取得したHTMLにアクセス制限やエラー文言が含まれています。CORS規制やセキュリティ遮断の可能性があります。`);
-          }
-
-          addLog(`[${sourceName}] DOM本文抽出処理(extractTextFromHtml)を実行中...`);
-          const cleanText = extractTextFromHtml(html);
-          
-          const textSlice = cleanText.substring(0, 150).replace(/\s+/g, ' ');
-          addLog(`[${sourceName}] 本文抽出完了。抽出サイズ: ${cleanText.length}文字。抽出先頭: "${textSlice}..."`);
-          
-          addLog(`[${sourceName}] 本文からシナリオタグ（【タイトル】、シーン切り替えなど）を検索・パース中...`);
-          const parsed = parseBlogContent(cleanText);
-          
-          if (parsed && parsed.length > 0) {
-            addLog(`[${sourceName}] 大成功!!! ${parsed.length}つのシナリオを検出し、パースに成功しました。ゲームを起動します！`);
-            setActivePlayScenario(parsed[0]);
-            setIsLoadingUrl(false);
-            return true;
-          } else {
-            addLog(`[${sourceName}] パース警告: 抽出した本文テキスト内に【タイトル】などのシナリオ構文が見つかりませんでした。`);
-            return false;
-          }
-        };
-
-        // --- PHASE 1: METHOD 1 (Server-side PC Proxy) ---
-        try {
-          const localProxyUrl = `/api/proxy?url=${encodeURIComponent(cleanFetchUrl)}`;
-          addLog(`[方法1] サーバーサイド PC User-Agent プロキシを呼び出します...`);
-          addLog(`プロキシ転送先エンドポイント: ${localProxyUrl}`);
-          
-          const response = await fetch(localProxyUrl, { cache: 'no-store' });
-          addLog(`プロキシサーバーが HTTP ステータス ${response.status} で応答しました。`);
-          
-          if (response.ok) {
-            const data = await response.json();
-            if (data.logs && Array.isArray(data.logs)) {
-              data.logs.forEach((backendLog: string) => {
-                addLog(`[Backend] ${backendLog}`);
-              });
-            }
-
-            if (data.success && data.html) {
-              if (tryParsingContent(data.html, "方法1:ローカルプロキシ")) return;
-            } else {
-              addLog(`サーバープロキシ警告: 処理ステータスが「失敗」です。理由: ${data.error || '不明'}`);
-            }
-          } else {
-            addLog(`ローカルプロバイダー接続エラー: HTTP ${response.status}`);
-          }
-        } catch (localProxyError: any) {
-          addLog(`[方法1 失敗] ローカルサーバー側プロキシでエラーが発生しました。理由: ${localProxyError.message || localProxyError}`);
-        }
-
-        // --- PHASE 2: METHOD 2 (Direct Client Fetch) ---
-        try {
-          addLog(`[方法2] クライアント側ダイレクトフェッチを試行します (CORS制限の解除確認)...`);
-          const directRes = await fetch(cleanFetchUrl, { cache: 'no-store' });
-          addLog(`ダイレクトフェッチ応答: HTTPステータス: ${directRes.status}`);
-          
-          if (directRes.ok) {
-            const htmlContent = await directRes.text();
-            if (tryParsingContent(htmlContent, "方法2:ダイレクトフェッチ")) return;
-          } else {
-            addLog(`ダイレクトフェッチ接続エラー: HTTP ${directRes.status}`);
-          }
-        } catch (directError: any) {
-          addLog(`[方法2 失敗] ダイレクトフェッチがCORSポリシーまたは接続制限によりブロックされました。理由: ${directError.message || directError}`);
-        }
-
-        // --- PHASE 3: METHOD 3 (Public High-speed Proxy: corsproxy.io) ---
-        try {
-          addLog(`[方法3] 超高速パブリックCORSプロキシ (corsproxy.io) 経由で取得を試みます...`);
-          const pUrl = `https://corsproxy.io/?url=${encodeURIComponent(cleanFetchUrl)}`;
-          addLog(`プロキシーURL: ${pUrl}`);
-          
-          const proxyRes = await fetch(pUrl, { cache: 'no-store' });
-          addLog(`corsproxy.io 応答: HTTP ${proxyRes.status}`);
-          
-          if (proxyRes.ok) {
-            const htmlContent = await proxyRes.text();
-            if (tryParsingContent(htmlContent, "方法3:corsproxy")) return;
-          } else {
-            addLog(`corsproxy.io がエラーを返しました。HTTP ${proxyRes.status}`);
-          }
-        } catch (e: any) {
-          addLog(`[方法3 失敗] corsproxy.io からのエラー: ${e.message || e}`);
-        }
-
-        // --- PHASE 4: METHOD 4 (Public Proxy: codetabs.com) ---
-        try {
-          addLog(`[方法4] 汎用CORSプロキシ (codetabs.com) を使ったクライアント側迂回を試みます...`);
-          const pUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(cleanFetchUrl)}`;
-          addLog(`プロキシーURL: ${pUrl}`);
-          
-          const proxyRes = await fetch(pUrl, { cache: 'no-store' });
-          addLog(`codetabs.com 応答: HTTP ${proxyRes.status}`);
-          
-          if (proxyRes.ok) {
-            const htmlContent = await proxyRes.text();
-            if (tryParsingContent(htmlContent, "方法4:codetabs")) return;
-          } else {
-            addLog(`codetabs.com がエラーを返しました。HTTP ${proxyRes.status}`);
-          }
-        } catch (e: any) {
-          addLog(`[方法4 失敗] codetabs.com からのエラー: ${e.message || e}`);
-        }
-
-        // --- PHASE 5: METHOD 5 (Backup Public Proxy: allorigins.win) ---
-        try {
-          addLog(`[方法5] 最終バックアッププロキシ (allorigins.win) を使った迂回を試みます...`);
-          const corsProxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(cleanFetchUrl)}&_=${Date.now()}`;
-          addLog(`フェッチ先: ${corsProxyUrl}`);
-          
-          const response = await fetch(corsProxyUrl, { cache: 'no-store' });
-          addLog(`allorigins.win 応答: HTTP ${response.status}`);
-          
-          if (response.ok) {
-            const data = await response.json();
-            const htmlContent = data.contents;
-            if (tryParsingContent(htmlContent, "方法5:allorigins")) return;
-          } else {
-            addLog(`alloriginsプロキシサーバーがエラーを返しました。HTTP: ${response.status}`);
-          }
-        } catch (err: any) {
-          addLog(`[方法5 失敗] パブリックCORSプロキシも動作しません。理由: ${err.message || err}`);
-        }
-
-        // --- UNABLE TO FETCH CONTEXTS (FATAL) ---
-        setUrlFetchError("ブログの自動抽出に完全に失敗しました。ブログ（はてなブログ、アメブロなど）に記述されている【タイトル】などのアドベンチャータグ定義が、全角括弧で正しく定義されているかご確認ください。また、手動で記事テキストをコピーして「記事の下書き編集」に貼り付けてテストすることも可能です。");
-        setIsLoadingUrl(false);
+        fetchScenarioFromUrl(blogUrlParam);
       }
     };
 
@@ -651,6 +644,40 @@ export default function App() {
             </div>
           </div>
 
+          {detectedLinks.length > 0 && (
+            <div className="bg-white border border-red-200 rounded-xl p-4 mt-2 max-w-4xl w-full mx-auto shadow-xs text-xs space-y-3">
+              <p className="font-bold text-zinc-900 flex items-center gap-1.5 text-xs sm:text-sm">
+                <Link className="w-4 h-4 text-emerald-500 shrink-0" />
+                <span>候補となる記事（個別の日記・会話劇ページ）が見つかりました（クリックで再生開始）:</span>
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
+                {detectedLinks.map((link, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      setIntegrationBlogUrl(link.url);
+                      // Push candidate URL parameter to browser history
+                      try {
+                        const newUrl = new URL(window.location.href);
+                        newUrl.searchParams.set('url', link.url);
+                        window.history.pushState({}, '', newUrl.toString());
+                      } catch(e) {}
+                      // Start fetching the specific clicked candidate link directly!
+                      fetchScenarioFromUrl(link.url);
+                    }}
+                    className="flex flex-col items-start text-left p-2.5 bg-zinc-50 hover:bg-emerald-50 hover:border-emerald-300 border border-zinc-200 rounded-lg cursor-pointer transition-all gap-1 w-full text-zinc-800"
+                  >
+                    <span className="font-bold line-clamp-1 text-zinc-950 hover:text-emerald-700">{link.title || "個別記事"}</span>
+                    <span className="text-[10px] text-zinc-400 font-mono line-clamp-1">{link.url}</span>
+                  </button>
+                ))}
+              </div>
+              <p className="text-[10px] text-red-600 font-medium bg-red-100/50 p-2 rounded border border-red-200/50">
+                ※ ブログのトップページや一覧ページは、複数の記事紹介が混ざるためシステムがシナリオを特定しづらい構造になっています。上記のリストより、会話劇が書かれている具体的な記事（日付やカスタム名が入っているURL）を選択して再生してください。
+              </p>
+            </div>
+          )}
+
           {showDebugLogs && fetchLogs.length > 0 && (
             <div className="bg-zinc-950 text-zinc-100 rounded-xl p-4 font-mono text-[11px] space-y-2 mt-1 shadow-inner border border-zinc-900 max-w-4xl w-full mx-auto select-text">
               <div className="flex justify-between items-center pb-2 border-b border-zinc-800">
@@ -785,6 +812,13 @@ export default function App() {
                         className="flex-1 text-xs px-3 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:border-blue-500 bg-zinc-50 focus:bg-white"
                         placeholder="https://myblogsite.com/life-strategy"
                       />
+                      <button
+                        onClick={() => fetchScenarioFromUrl(integrationBlogUrl)}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg transition-all shadow-xs cursor-pointer flex items-center gap-1.5 shrink-0"
+                      >
+                        <Play className="w-3.5 h-3.5" />
+                        <span>テスト読込</span>
+                      </button>
                     </div>
                   </div>
 
