@@ -11,7 +11,7 @@ import ScenarioManager from './components/ScenarioManager';
 import AdventureGameView from './components/AdventureGameView';
 import { parseBlogContent } from './utils/parser';
 import { BookOpen, Sliders, Play, Github, Gamepad2, Info, Share2, Copy, Check, Blocks, Link } from 'lucide-react';
-import { AnimatePresence } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
 
 export default function App() {
   const [blogs, setBlogs] = useState<BlogItem[]>(DEFAULT_BLOGS);
