@@ -24,7 +24,7 @@ export function parseBlogContent(content: string): ParsedScenario[] {
   let extractedTitle = "";
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
-    if (line.match(/^\s*(?:\*\*\*|【|［|\[)\s*タイトル\s*(?:\*\*\*|】|］|\])/) && i + 1 < lines.length) {
+    if (line.match(/^\s*(?:\*\*\*|【|［|\[)\s*(?:タイトル|Title|title|TITLE)\s*(?:\*\*\*|】|］|\])/) && i + 1 < lines.length) {
       // Find next non-empty line
       let j = i + 1;
       while (j < lines.length && !lines[j].trim()) {
@@ -45,7 +45,7 @@ export function parseBlogContent(content: string): ParsedScenario[] {
     const rawLine = lines[i].replace(/[\u200B-\u200D\uFEFF]/g, '');
     const trimmedLine = rawLine.trim();
 
-    const isTitleTag = trimmedLine.match(/^\s*(?:\*\*\*|【|［|\[)\s*タイトル\s*(?:\*\*\*|】|］|\])/);
+    const isTitleTag = trimmedLine.match(/^\s*(?:\*\*\*|【|［|\[)\s*(?:タイトル|Title|title|TITLE)\s*(?:\*\*\*|】|］|\])/);
     if (isTitleTag) {
       titleSeen = true;
       continue;
@@ -64,12 +64,15 @@ export function parseBlogContent(content: string): ParsedScenario[] {
       let tagContent = startTagMatch[1].trim();
       const extraContent = startTagMatch[2].trim();
       
-      if (tagContent === "タイトル") {
+      if (tagContent === "タイトル" || tagContent.toLowerCase() === "title") {
         // Skip title lines, already handled
         continue;
       }
       
-      if (tagContent.toLowerCase().startsWith("end")) {
+      const lowerTag = tagContent.toLowerCase();
+      const isEndTag = lowerTag.startsWith("end") || tagContent === "おわり" || tagContent === "終了" || tagContent === "終了タグ";
+      
+      if (isEndTag) {
         // Reached end tag, save current scenario if exists
         if (currentScenarioId) {
           scenarios.push({

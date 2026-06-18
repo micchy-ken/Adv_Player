@@ -196,7 +196,7 @@ export default function BlogEditor({
             </div>
 
             {/* Content Textarea */}
-            <div className="flex-1 min-h-[300px] flex flex-col" id="editor-body">
+            <div className="flex-1 min-h-[300px] flex flex-col notranslate" id="editor-body" translate="no">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-semibold text-zinc-700 flex items-center gap-1.5">
                   <FileText className="w-4 h-4 text-zinc-500" />
@@ -210,8 +210,9 @@ export default function BlogEditor({
                 value={currentBlog.content}
                 onChange={(e) => onUpdateBlog(currentBlog.id, { content: e.target.value })}
                 placeholder="ここにブログの本文を自由に入力してください。会話パートを挟み込むことでゲーム風UIが起動できるようになります。"
-                className="w-full flex-1 min-h-[350px] text-xs font-mono p-4 rounded-xl border border-zinc-200 focus:outline-none focus:border-zinc-400 focus:ring-1 focus:ring-zinc-400/20 bg-zinc-50 hover:bg-zinc-50/50 leading-relaxed text-zinc-800"
+                className="w-full flex-1 min-h-[350px] text-xs font-mono p-4 rounded-xl border border-zinc-200 focus:outline-none focus:border-zinc-400 focus:ring-1 focus:ring-zinc-400/20 bg-zinc-50 hover:bg-zinc-50/50 leading-relaxed text-zinc-800 notranslate"
                 style={{ tabSize: 2 }}
+                translate="no"
               />
             </div>
           </>
