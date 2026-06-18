@@ -5,6 +5,13 @@
 
 import { ParsedScenario, DialogueItem, DialogueType } from '../types';
 
+const IGNORED_TAG_KEYWORDS = [
+  "お知らせ", "注意", "更新", "pr", "日記", "まとめ", "悲報", "朗報", "詳細", "一覧", 
+  "紹介", "報告", "連絡", "お願い", "はじめに", "解説", "追記", "メモ", "ルール", "目次",
+  "info", "notice", "warning", "attention", "memo", "diary", "ブログ", "プロフィール",
+  "アメンバー", "ameba", "アメブロ", "コメント", "リブログ", "いいね", "ナビゲーション"
+];
+
 /**
  * Parses blog body content, extracting scenario blocks and titles.
  * @param content The raw markdown or text of the blog.
@@ -17,7 +24,8 @@ export function parseBlogContent(content: string): ParsedScenario[] {
   // (We search for the "【タイトル】" or "***タイトル***" line and take the first subsequent non-empty line as the general title)
   let extractedTitle = "";
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
+    const rawLine = lines[i].replace(/[\u200B-\u200D\uFEFF]/g, '');
+    const line = rawLine.trim();
     if (line.match(/^\s*(?:\*\*\*|【|［|\[)\s*(?:タイトル|Title|title|TITLE)\s*(?:\*\*\*|】|］|\])/) && i + 1 < lines.length) {
       // Find next non-empty line
       let j = i + 1;
@@ -45,6 +53,9 @@ export function parseBlogContent(content: string): ParsedScenario[] {
       const rawLine = lines[i].replace(/[\u200B-\u200D\uFEFF]/g, '');
       const trimmedLine = rawLine.trim();
 
+      // Check if line is empty or whitespace-only (including full-width spaces and invisible padding)
+      const isWhitespaceOnly = /^[ \t\s\u3000\u00A0\u200B-\u200D\uFEFF]*$/.test(trimmedLine);
+
       const isTitleTag = trimmedLine.match(/^\s*(?:\*\*\*|【|［|\[)\s*(?:タイトル|Title|title|TITLE)\s*(?:\*\*\*|】|］|\])/);
       if (isTitleTag) {
         titleSeen = true;
@@ -68,8 +79,14 @@ export function parseBlogContent(content: string): ParsedScenario[] {
           // Skip title lines, already handled
           continue;
         }
-        
+
         const lowerTag = tagContent.toLowerCase();
+
+        // Skip common blog headers/elements that use bracket syntax but aren't scenario blocks
+        if (IGNORED_TAG_KEYWORDS.some(k => lowerTag === k || lowerTag.startsWith(k) || k.startsWith(lowerTag))) {
+          continue;
+        }
+        
         const isEndTag = lowerTag.startsWith("end") || tagContent === "おわり" || tagContent === "終了" || tagContent === "終了タグ";
         
         if (isEndTag) {
@@ -116,7 +133,7 @@ export function parseBlogContent(content: string): ParsedScenario[] {
 
       // Inside a scenario block
       if (currentScenarioId) {
-        if (trimmedLine === "") {
+        if (isWhitespaceOnly) {
           // We skip empty lines to rely on natural click-to-advance flow
           continue;
         } else {

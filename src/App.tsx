@@ -95,11 +95,23 @@ export default function App() {
       }
 
       if (blogUrlParam) {
+        // Prevent s.ameblo.jp (mobile SPA layout with missing SSR body text) from failing to parse.
+        // Convert to PC ameblo.jp URL which contains fully SSR'd blog texts for CORS proxy parser.
+        if (blogUrlParam.includes('s.ameblo.jp')) {
+          blogUrlParam = blogUrlParam.replace('s.ameblo.jp', 'ameblo.jp');
+        }
+
         setIsLoadingUrl(true);
         setUrlFetchError(null);
+        
+        // Always append a cache-buster timestamp query parameters to bypass CORS / allorigins proxy caches
+        const cleanFetchUrl = blogUrlParam.includes('?')
+          ? `${blogUrlParam}&_=${Date.now()}`
+          : `${blogUrlParam}?_=${Date.now()}`;
+
         try {
           // First, try direct fetch. This works if they are on same origin or CORS is allowed.
-          const directRes = await fetch(blogUrlParam);
+          const directRes = await fetch(cleanFetchUrl);
           if (directRes.ok) {
             const htmlContent = await directRes.text();
             const cleanText = extractTextFromHtml(htmlContent);
@@ -119,9 +131,10 @@ export default function App() {
         } catch (e) {
           console.warn("Direct fetch failed, attempting proxy fallback:", e);
           try {
-            // Use a public CORS proxy helper for user simplicity. 
-            // Removed the timestamp cache buster to significantly speed up allorigins.
-            const corsProxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(blogUrlParam)}`;
+            // Use a public CORS proxy helper for user simplicity.
+            // We include the cleanFetchUrl (with its cache-buster timestamp) inside the proxy URI 
+            // and add a proxy-level cache-buster parameter to guarantee non-cached real-time response!
+            const corsProxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(cleanFetchUrl)}&_=${Date.now()}`;
             const response = await fetch(corsProxyUrl);
             if (response.ok) {
               const data = await response.json();
