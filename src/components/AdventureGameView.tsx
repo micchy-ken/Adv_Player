@@ -551,22 +551,29 @@ export default function AdventureGameView({
       leftPercent = 12 + index * 25.3; // 12%, 37.3%, 62.6%, 88%
     }
  
-    // Smart vertical displacement to prevent overlapping (anti-overlap stagger algorithm)
-    if (!isLandscape) {
-      // Portrait / Mobile mode: Less horizontal space
-      if (total >= 3) {
-        // Mobile portrait + 3/4 characters: 2-line stagger
-        topPx = index % 2 === 0 ? -40 : 25;
-        widthClass = "w-16 min-[380px]:w-[74px] min-[440px]:w-[84px] sm:w-28";
-      } else if (total === 2) {
-        widthClass = "w-20 min-[380px]:w-24 min-[440px]:w-28 sm:w-36";
+      // Smart vertical displacement to prevent overlapping (anti-overlap stagger algorithm)
+      if (!isLandscape) {
+        // Portrait / Mobile mode: Vertically very tall, so characters can be larger
+        if (total >= 3) {
+          // Mobile portrait + 3/4 characters: 2-line stagger
+          topPx = index % 2 === 0 ? -40 : 25;
+          widthClass = "w-20 min-[380px]:w-24 min-[440px]:w-32 sm:w-40";
+        } else if (total === 2) {
+          widthClass = "w-28 min-[380px]:w-36 min-[440px]:w-48 sm:w-56";
+        } else {
+          widthClass = "w-32 min-[380px]:w-40 min-[440px]:w-52 sm:w-64";
+        }
+      } else {
+        // Landscape: Split screen is active, left pane is thinner relative to total width 
+        // We should make characters slightly bigger but mindful of the split width
+        if (total >= 4) {
+          widthClass = "w-18 sm:w-24 md:w-32 lg:w-40";
+        } else if (total === 1) {
+          widthClass = "w-32 sm:w-44 md:w-56";
+        } else {
+          widthClass = "w-24 sm:w-32 md:w-48 lg:w-56";
+        }
       }
-    } else {
-      // Landscape: Plenty of horizontal space, but let's downsize for N >= 4 to keep it elegant
-      if (total >= 4) {
-        widthClass = "w-18 sm:w-24 md:w-32 lg:w-36";
-      }
-    }
  
     return {
       left: `${leftPercent}%`,
@@ -692,143 +699,147 @@ export default function AdventureGameView({
         />
       </div>
 
-      {/* Top Header Grid */}
-      <header className="relative z-20 flex items-center justify-between p-3 sm:p-4 md:px-6 bg-gradient-to-b from-black/80 to-transparent">
-        <div className="flex flex-col">
-          <span className="text-[9px] sm:text-[10px] text-emerald-400 font-bold tracking-wider uppercase flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            Adventure Mode Active
-          </span>
-          <h1 className="text-xs sm:text-sm md:text-base font-black tracking-tight text-white drop-shadow truncate max-w-[150px] min-[380px]:max-w-[200px] sm:max-w-xs md:max-w-none">
-            {scenario.title || config.name}
-          </h1>
-        </div>
-
-        {/* Dashboard Tools */}
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          {/* Backlog viewer button */}
-          <button
-            onClick={() => setShowLog(!showLog)}
-            className={`p-1.5 sm:p-2 rounded-lg border text-[11px] sm:text-xs gap-1 flex items-center transition-colors cursor-pointer ${
-              showLog ? 'bg-zinc-800 text-white border-zinc-600' : 'bg-black/40 text-zinc-300 border-white/10 hover:bg-black/60'
-            }`}
-            title="会話ログ"
-          >
-            <MessageSquare className="w-3.5 h-3.5 sm:w-4 h-4" />
-            <span className="hidden min-[400px]:inline">ログ({backlog.length})</span>
-          </button>
-
-          {/* Mute button */}
-          <button
-            onClick={() => setIsMuted(!isMuted)}
-            className="p-1.5 sm:p-2 bg-black/40 hover:bg-black/60 border border-white/10 rounded-lg text-zinc-300 transition-colors cursor-pointer"
-            title={isMuted ? "ミュート解除" : "ミュート"}
-          >
-            {isMuted ? <VolumeX className="w-3.5 h-3.5 sm:w-4 h-4 text-rose-400" /> : <Volume2 className="w-3.5 h-3.5 sm:w-4 h-4" />}
-          </button>
-
-          {/* Close adventure game button */}
-          <button
-            onClick={onClose}
-            className="p-1.5 sm:p-2 bg-rose-600/90 hover:bg-rose-700 text-white rounded-lg transition-all shadow-lg hover:rotate-90 duration-200 cursor-pointer"
-            title="ゲームを終了"
-          >
-            <X className="w-3.5 h-3.5 sm:w-4 h-4" />
-          </button>
-        </div>
-      </header>
-
-      {/* Stage: Character Area */}
-      <main className="relative z-10 flex-1 w-full max-w-5xl mx-auto select-none min-h-[140px] sm:min-h-[220px]">
-        {/* Absolute Wrapper to hold all responsive characters */}
-        <div className="absolute inset-x-0 bottom-0 top-0 overflow-visible pointer-events-none">
-          <AnimatePresence>
-            {activeCharacters.map((char, index) => 
-              renderCharacter(char, index, activeCharacters.length)
-            )}
-          </AnimatePresence>
-        </div>
-
-        {/* Clean slots */}
-
-        {/* Center slot clean */}
-
-
-        {/* Right slot clean */}
-
-
-      </main>
-
-      {/* Bottom Segment: UI, controls, and dialog box */}
-      <footer className="relative z-20 bg-gradient-to-t from-black via-black/95 to-transparent pt-3 pb-3 sm:pt-5 sm:pb-6 px-3 sm:px-6 md:px-8">
-        <div className="max-w-4xl mx-auto flex flex-col gap-2.5">
-          
-          {/* Sub-Controller Rails */}
-          <div className="flex flex-col gap-2 min-[520px]:flex-row min-[520px]:items-center min-[520px]:justify-between px-1">
-            {/* Progress counter */}
-            <div className="text-[9px] sm:text-[10px] font-mono text-zinc-400 bg-black/60 px-3 py-1 rounded-full border border-white/5 self-start min-[520px]:self-auto">
-              PROGRESS:{' '}
-              <span className="text-yellow-400 font-bold">
-                {dialogueLinesLeftCount.completed}
-              </span>{' '}
-              /{' '}
-              <span className="text-zinc-500">
-                {dialogueLinesLeftCount.total}
-              </span>{' '}
-              LINES
+      <div className={`relative z-10 flex flex-1 w-full h-full ${windowSize.width > windowSize.height ? 'flex-row' : 'flex-col'}`}>
+        
+        {/* Left pane in landscape, Top pane in portrait */}
+        <div className="relative flex flex-col flex-1 overflow-hidden">
+          {/* Top Header Grid */}
+          <header className="relative z-20 flex items-center justify-between p-3 sm:p-4 md:px-6 bg-gradient-to-b from-black/80 to-transparent">
+            <div className="flex flex-col">
+              <span className="text-[9px] sm:text-[10px] text-emerald-400 font-bold tracking-wider uppercase flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                Adventure Mode Active
+              </span>
+              <h1 className="text-xs sm:text-sm md:text-base font-black tracking-tight text-white drop-shadow truncate max-w-[150px] min-[380px]:max-w-[200px] sm:max-w-xs md:max-w-none">
+                {scenario.title || config.name}
+              </h1>
             </div>
 
-            {/* Novel mode options */}
-            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+            {/* Dashboard Tools */}
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+              {/* Backlog viewer button */}
               <button
-                onClick={() => {
-                  setIsSkip(false);
-                  setIsAutoplay(!isAutoplay);
-                }}
-                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-[9px] sm:text-[10px] font-bold transition-all border cursor-pointer ${
-                  isAutoplay
-                    ? 'bg-amber-600 text-white border-amber-500 font-black animate-pulse'
-                    : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white'
+                onClick={() => setShowLog(!showLog)}
+                className={`p-1.5 sm:p-2 rounded-lg border text-[11px] sm:text-xs gap-1 flex items-center transition-colors cursor-pointer ${
+                  showLog ? 'bg-zinc-800 text-white border-zinc-600' : 'bg-black/40 text-zinc-300 border-white/10 hover:bg-black/60'
                 }`}
+                title="会話ログ"
               >
-                <Play className="w-2.5 h-2.5 sm:w-3 h-3 fill-current" />
-                <span>オート: {isAutoplay ? "ON" : "OFF"}</span>
+                <MessageSquare className="w-3.5 h-3.5 sm:w-4 h-4" />
+                <span className="hidden min-[400px]:inline">ログ({backlog.length})</span>
               </button>
 
+              {/* Mute button */}
               <button
-                onClick={() => {
-                  setIsAutoplay(false);
-                  setIsSkip(!isSkip);
-                }}
-                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-[9px] sm:text-[10px] font-bold transition-all border cursor-pointer ${
-                  isSkip
-                    ? 'bg-rose-600 text-white border-rose-500 font-black'
-                    : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white'
-                }`}
-                title="セリフ演出をスキップして高速で進めます"
+                onClick={() => setIsMuted(!isMuted)}
+                className="p-1.5 sm:p-2 bg-black/40 hover:bg-black/60 border border-white/10 rounded-lg text-zinc-300 transition-colors cursor-pointer"
+                title={isMuted ? "ミュート解除" : "ミュート"}
               >
-                <FastForward className="w-2.5 h-2.5 sm:w-3 h-3" />
-                <span>スキップ: {isSkip ? "ON" : "OFF"}</span>
+                {isMuted ? <VolumeX className="w-3.5 h-3.5 sm:w-4 h-4 text-rose-400" /> : <Volume2 className="w-3.5 h-3.5 sm:w-4 h-4" />}
               </button>
 
+              {/* Close adventure game button */}
               <button
-                onClick={handleReset}
-                className="flex items-center gap-1 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-400 hover:text-white px-2.5 sm:px-3 py-1 rounded-full text-[9px] sm:text-[10px] transition-colors cursor-pointer"
+                onClick={onClose}
+                className="p-1.5 sm:p-2 bg-rose-600/90 hover:bg-rose-700 text-white rounded-lg transition-all shadow-lg hover:rotate-90 duration-200 cursor-pointer"
+                title="ゲームを終了"
               >
-                <RotateCcw className="w-2.5 h-2.5 sm:w-3 h-3" />
-                <span>最初から</span>
+                <X className="w-3.5 h-3.5 sm:w-4 h-4" />
               </button>
             </div>
-          </div>
+          </header>
 
-          {/* Interactive Dialogue container */}
-          <div
-            onClick={handleNext}
-            className={`group relative min-h-[105px] sm:min-h-[135px] rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 shadow-2xl transition-all cursor-pointer select-none backdrop-blur border bg-black/75 hover:bg-black/85 ${
-              resolvedSpeakerConfig ? 'border-zinc-700 ring-2 ring-white/5 shadow-white/5' : 'border-zinc-800'
-            }`}
-            id="dialogue-click-box"
-          >
+          {/* Stage: Character Area */}
+          <main className="relative z-10 flex-1 w-full max-w-5xl mx-auto select-none min-h-[140px] sm:min-h-[220px]">
+            {/* Absolute Wrapper to hold all responsive characters */}
+            <div className="absolute inset-x-0 bottom-0 top-0 overflow-visible pointer-events-none">
+              <AnimatePresence>
+                {activeCharacters.map((char, index) => 
+                  renderCharacter(char, index, activeCharacters.length)
+                )}
+              </AnimatePresence>
+            </div>
+          </main>
+        </div>
+
+        {/* Right Pane in landscape, Bottom segment in portrait */}
+        <footer className={`relative z-20 shrink-0 flex flex-col justify-end ${
+          windowSize.width > windowSize.height 
+            ? 'w-[260px] sm:w-[320px] md:w-[400px] lg:w-[460px] bg-black/75 backdrop-blur-md border-l border-white/10 p-4 pb-6 md:p-6 shadow-2xl' 
+            : 'bg-gradient-to-t from-black via-black/95 to-transparent pt-3 pb-3 sm:pt-5 sm:pb-6 px-3 sm:px-6 md:px-8'
+        }`}>
+          <div className="w-full max-w-4xl mx-auto flex flex-col gap-2.5">
+            
+            {/* Sub-Controller Rails */}
+            <div className={`flex gap-2 min-[520px]:items-center min-[520px]:justify-between ${windowSize.width > windowSize.height ? 'flex-col' : 'flex-col min-[520px]:flex-row'} px-1`}>
+              {/* Progress counter */}
+              <div className="text-[9px] sm:text-[10px] font-mono text-zinc-400 bg-black/60 px-3 py-1 rounded-full border border-white/5 self-start min-[520px]:self-auto">
+                PROGRESS:{' '}
+                <span className="text-yellow-400 font-bold">
+                  {dialogueLinesLeftCount.completed}
+                </span>{' '}
+                /{' '}
+                <span className="text-zinc-500">
+                  {dialogueLinesLeftCount.total}
+                </span>{' '}
+                LINES
+              </div>
+
+              {/* Novel mode options */}
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <button
+                  onClick={() => {
+                    setIsSkip(false);
+                    setIsAutoplay(!isAutoplay);
+                  }}
+                  className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-[9px] sm:text-[10px] font-bold transition-all border cursor-pointer ${
+                    isAutoplay
+                      ? 'bg-amber-600 text-white border-amber-500 font-black animate-pulse'
+                      : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white'
+                  }`}
+                >
+                  <Play className="w-2.5 h-2.5 sm:w-3 h-3 fill-current" />
+                  <span>オート: {isAutoplay ? "ON" : "OFF"}</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setIsAutoplay(false);
+                    setIsSkip(!isSkip);
+                  }}
+                  className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-[9px] sm:text-[10px] font-bold transition-all border cursor-pointer ${
+                    isSkip
+                      ? 'bg-rose-600 text-white border-rose-500 font-black'
+                      : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white'
+                  }`}
+                  title="セリフ演出をスキップして高速で進めます"
+                >
+                  <FastForward className="w-2.5 h-2.5 sm:w-3 h-3" />
+                  <span>スキップ: {isSkip ? "ON" : "OFF"}</span>
+                </button>
+
+                <button
+                  onClick={handleReset}
+                  className="flex items-center gap-1 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-400 hover:text-white px-2.5 sm:px-3 py-1 rounded-full text-[9px] sm:text-[10px] transition-colors cursor-pointer"
+                >
+                  <RotateCcw className="w-2.5 h-2.5 sm:w-3 h-3" />
+                  <span>最初から</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Interactive Dialogue container */}
+            <div
+              onClick={handleNext}
+              className={`group relative rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 shadow-2xl transition-all cursor-pointer select-none backdrop-blur border bg-black/75 hover:bg-black/85 flex flex-col ${
+                windowSize.width > windowSize.height 
+                  ? 'flex-1 min-h-[220px] md:min-h-[260px]' 
+                  : 'min-h-[105px] sm:min-h-[135px]'
+              } ${
+                resolvedSpeakerConfig ? 'border-zinc-700 ring-2 ring-white/5 shadow-white/5' : 'border-zinc-800'
+              }`}
+              id="dialogue-click-box"
+            >
             {/* Speaker title badge block */}
             <AnimatePresence mode="wait">
               {resolvedSpeakerConfig ? (
@@ -891,6 +902,7 @@ export default function AdventureGameView({
           </div>
         </div>
       </footer>
+      </div>
 
       {/* Backlog Side Panel Modal component */}
       <AnimatePresence>
