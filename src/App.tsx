@@ -374,8 +374,22 @@ export default function App() {
         if (extractedUrl) blogUrlParam = extractedUrl[0];
       }
       
-      // Load from Referrer optionally (Supports raw referrer transition as well for seamless instant play)
-      // (Removed document.referrer block to prevent accidental fetching in preview environments like iframe)
+      // Load from Referrer optionally (if ?auto=1 is passed, useful for transitions from external blogs)
+      const autoParam = searchParams.get('auto');
+      if (!blogUrlParam && autoParam === '1' && document.referrer) {
+        try {
+          const refUrlObj = new URL(document.referrer);
+          const currentUrlObj = new URL(window.location.href);
+          
+          // Exclude internal domain matches to prevent infinite fetch loops
+          if (refUrlObj.hostname !== currentUrlObj.hostname && 
+              !refUrlObj.hostname.includes('localhost') && 
+              !refUrlObj.hostname.includes('127.0.0.1')) {
+            addLog(`自動検出: リファラー流入 (?auto=1) を検知 (${document.referrer})。自動的にブログURLとしてセットします。`);
+            blogUrlParam = document.referrer;
+          }
+        } catch(e) {}
+      }
 
       if (blogUrlParam) {
         fetchScenarioFromUrl(blogUrlParam);
