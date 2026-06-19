@@ -56,13 +56,13 @@ export default function BlogEditor({
                 />
               </div>
               
-              <div className="flex flex-col sm:w-80 shrink-0 gap-1.5">
+              <div className="flex flex-col w-full sm:w-80 shrink-0 gap-1.5 min-w-0">
                 <label className="block text-xs font-semibold text-zinc-700">サンプル記事を切り替え</label>
-                <div className="flex gap-2">
+                <div className="flex gap-2 min-w-0">
                   <select
                     value={selectedBlogId}
                     onChange={(e) => onSelectBlog(e.target.value)}
-                    className="flex-1 text-xs px-3 py-2.5 rounded-xl border border-zinc-200 bg-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 text-zinc-800 font-medium cursor-pointer"
+                    className="flex-1 min-w-0 text-ellipsis truncate text-xs px-3 py-2.5 rounded-xl border border-zinc-200 bg-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 text-zinc-800 font-medium cursor-pointer"
                     id="select-sample-blog"
                   >
                     {blogs.map((blog) => (
@@ -73,11 +73,11 @@ export default function BlogEditor({
                   </select>
                   <button
                     onClick={onCreateBlog}
-                    className="flex items-center justify-center gap-1 text-xs px-3 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-all font-bold cursor-pointer shadow-subtle shrink-0"
+                    className="flex items-center justify-center gap-1 text-xs px-2 sm:px-3 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-all font-bold cursor-pointer shadow-subtle shrink-0"
                     id="btn-new-blog-compact"
                   >
                     <Plus className="w-4 h-4" />
-                    <span>新規</span>
+                    <span className="hidden sm:inline">新規</span>
                   </button>
                 </div>
               </div>

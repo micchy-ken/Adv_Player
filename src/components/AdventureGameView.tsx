@@ -592,9 +592,9 @@ export default function AdventureGameView({
     return (
       <motion.div
         key={charConfig.key}
-        style={{ left, transform: `translateX(-50%) translateY(${topPx}px)` }}
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: existsOnStage ? 1 : 0.6, scale: 1 }}
+        style={{ left }}
+        initial={{ opacity: 0, scale: 0.8, x: "-50%", y: topPx }}
+        animate={{ opacity: existsOnStage ? 1 : 0.6, scale: 1, x: "-50%", y: topPx }}
         exit={{ opacity: 0 }}
         transition={{ type: 'spring', stiffness: 90, damping: 16 }}
         className={`absolute bottom-0 flex flex-col items-center pointer-events-none select-none transition-all duration-300 ${highlightClass}`}
@@ -667,7 +667,12 @@ export default function AdventureGameView({
               </p>
 
               <button
-                onClick={() => setIsStarted(true)}
+                onClick={() => {
+                  if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().catch(() => {});
+                  }
+                  setIsStarted(true);
+                }}
                 className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs tracking-widest uppercase rounded-xl shadow-xl shadow-emerald-950/40 active:translate-y-px cursor-pointer transition-all duration-150"
                 id="btn-gate-start"
               >
@@ -716,7 +721,7 @@ export default function AdventureGameView({
                   document.exitFullscreen();
                 }
               }}
-              className="p-1.5 sm:p-2 bg-black/40 hover:bg-black/60 border border-white/10 rounded-lg text-zinc-300 transition-colors cursor-pointer hidden sm:flex"
+              className="p-1.5 sm:p-2 bg-black/40 hover:bg-black/60 border border-white/10 rounded-lg text-zinc-300 transition-colors cursor-pointer flex"
               title="全画面表示"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
