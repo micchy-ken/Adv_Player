@@ -33,6 +33,7 @@ export interface ParsedScenario {
   id: string; // Matches scenario configuration ID
   title: string; // e.g. extracted via ***タイトル*** or default
   items: DialogueItem[];
+  initialCharacters?: string[];
 }
 
 export interface BlogItem {

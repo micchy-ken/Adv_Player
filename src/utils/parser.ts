@@ -46,6 +46,7 @@ export function parseBlogContent(content: string): ParsedScenario[] {
     let currentScenarioId: string | null = null;
     let currentTitle = "アドベンチャーパート";
     let currentItems: DialogueItem[] = [];
+    let currentInitialCharacters: string[] = [];
     let itemIndex = 0;
 
     for (let i = 0; i < lines.length; i++) {
@@ -95,10 +96,12 @@ export function parseBlogContent(content: string): ParsedScenario[] {
             result.push({
               id: currentScenarioId,
               title: extractedTitle || currentTitle,
-              items: [...currentItems]
+              items: [...currentItems],
+              initialCharacters: [...currentInitialCharacters]
             });
             currentScenarioId = null;
             currentItems = [];
+            currentInitialCharacters = [];
           }
           continue;
         }
@@ -108,9 +111,11 @@ export function parseBlogContent(content: string): ParsedScenario[] {
           result.push({
             id: currentScenarioId,
             title: extractedTitle || currentTitle,
-            items: [...currentItems]
+            items: [...currentItems],
+            initialCharacters: [...currentInitialCharacters]
           });
           currentItems = [];
+          currentInitialCharacters = [];
         }
 
         // Check for configId extraction (e.g. `上司と部下「もしも苗字が三井だったら」`)
@@ -127,6 +132,7 @@ export function parseBlogContent(content: string): ParsedScenario[] {
         // Start new scenario block
         currentScenarioId = configId; // Map specifically to the config ID base
         currentTitle = extractedTitle || parsedTitle;
+        currentInitialCharacters = [];
         itemIndex = 0;
         continue;
       }
@@ -136,10 +142,32 @@ export function parseBlogContent(content: string): ParsedScenario[] {
         if (isWhitespaceOnly) {
           // We skip empty lines to rely on natural click-to-advance flow
           continue;
-        } else {
-          // Check if there is a character speaking (colon check)
-          // Match both halfwidth and fullwidth colons, e.g. "佐藤:" or "佐藤：" or "佐藤 : "
-          const speakerMatch = rawLine.match(/^([^：:\s]{1,15})\s*[：:]\s*(.*)$/);
+        }
+
+        // Check for 【登場人物】
+        const charMatch = trimmedLine.match(/^(?:【|\[|［)?登場人物(?:】|\]|］)?[：:\s]\s*(.*)$/);
+        const isSpecialCharactersTag = trimmedLine.startsWith('【登場人物】') || trimmedLine.startsWith('[登場人物]') || trimmedLine.startsWith('［登場人物］');
+        
+        if (charMatch || isSpecialCharactersTag) {
+          let charNamesText = "";
+          if (isSpecialCharactersTag) {
+            charNamesText = trimmedLine.replace(/^(?:【登場人物】|\[登場人物\]|［登場人物］)\s*/, '');
+          } else if (charMatch) {
+            charNamesText = charMatch[1];
+          }
+          
+          const names = charNamesText
+            .split(/[、,，・\.．\s\u3000]+/g)
+            .map(n => n.trim())
+            .filter(n => n.length > 0);
+          
+          currentInitialCharacters = names.slice(0, 4);
+          continue;
+        }
+
+        // Check if there is a character speaking (colon check)
+        // Match both halfwidth and fullwidth colons, e.g. "佐藤:" or "佐藤：" or "佐藤 : "
+        const speakerMatch = rawLine.match(/^([^：:\s]{1,15})\s*[：:]\s*(.*)$/);
 
           if (speakerMatch) {
             const speaker = speakerMatch[1].trim();
@@ -159,17 +187,17 @@ export function parseBlogContent(content: string): ParsedScenario[] {
               text: trimmedLine,
               index: itemIndex
             });
-          }
+          } // speaker else block end
         }
       }
-    }
 
     // Handle unclosed block at end of file
     if (currentScenarioId && currentItems.length > 0) {
       result.push({
         id: currentScenarioId,
         title: extractedTitle || currentTitle,
-        items: currentItems
+        items: currentItems,
+        initialCharacters: currentInitialCharacters
       });
     }
 

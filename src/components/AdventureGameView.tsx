@@ -115,8 +115,25 @@ export default function AdventureGameView({
   // Backlog logs previous dialogue strings
   const [backlog, setBacklog] = useState<{ speakerName?: string; text: string; color?: string }[]>([]);
 
-  const [activeLeft, setActiveLeft] = useState<CharacterConfig | null>(null);
-  const [activeRight, setActiveRight] = useState<CharacterConfig | null>(null);
+  // Dynamically populated up to 4 characters from scenario configurations or dialogues
+  const [activeCharacters, setActiveCharacters] = useState<CharacterConfig[]>([]);
+  const [windowSize, setWindowSize] = useState({
+    width: typeof window !== 'undefined' ? window.innerWidth : 1024,
+    height: typeof window !== 'undefined' ? window.innerHeight : 768
+  });
+
+  // Flat narrator splitting states
+  const [currentSegments, setCurrentSegments] = useState<string[]>([]);
+  const [segmentIndex, setSegmentIndex] = useState(0);
+
+  // Resize listener
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowSize({ width: window.innerWidth, height: window.innerHeight });
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Sync mute setting
   useEffect(() => {
@@ -229,6 +246,109 @@ export default function AdventureGameView({
     return null;
   }, [config]);
 
+  // Resolve characters to render dynamically on stage (maximum 4)
+  useEffect(() => {
+    let charKeys: string[] = [];
+
+    if (scenario.initialCharacters && scenario.initialCharacters.length > 0) {
+      // 1. Tag based (from 【登場人物】)
+      charKeys = scenario.initialCharacters;
+    } else {
+      // 2. Autofit fallback (scan items to find spoken characters)
+      const scannedKeys = new Set<string>();
+      scenario.items.forEach(item => {
+        if (item.speaker) {
+          const cleanSpeaker = item.speaker.trim();
+          const configMatch = findCharacterConfig(cleanSpeaker);
+          if (configMatch) {
+            scannedKeys.add(configMatch.key);
+          } else {
+            scannedKeys.add(cleanSpeaker);
+          }
+        }
+      });
+      charKeys = Array.from(scannedKeys);
+    }
+
+    // Resolve actually configuration objects for resolved keys (up to 4)
+    const resolved: CharacterConfig[] = [];
+    charKeys.slice(0, 4).forEach(key => {
+      const configMatch = findCharacterConfig(key);
+      if (configMatch) {
+        resolved.push(configMatch);
+      } else {
+        // Fallback placeholder configuration
+        resolved.push({
+          key,
+          displayName: key,
+          avatarUrl: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80",
+          color: "#10b981",
+          position: "center"
+        });
+      }
+    });
+
+    // If completely empty, pre-populate with default characters up to 4
+    if (resolved.length === 0) {
+      const defaultChars = Object.values(config.characters).slice(0, 4);
+      resolved.push(...defaultChars);
+    }
+
+    setActiveCharacters(resolved);
+  }, [scenario, config, findCharacterConfig]);
+
+  // Handle auto-splitting long/multi-line narrator plain text into click-to-advance chunks
+  useEffect(() => {
+    if (!currentStep) {
+      setCurrentSegments([]);
+      setSegmentIndex(0);
+      return;
+    }
+
+    if (currentStep.type === 'click-wait') {
+      setCurrentSegments(['（クリックして次に進む）']);
+      setSegmentIndex(0);
+      return;
+    }
+
+    const isNarrator = !currentStep.speaker;
+    const text = currentStep.text || '';
+
+    if (isNarrator && text.length > 0) {
+      // Splitting logic for Plain Text / Narrator (to respect User visual and newline constraints)
+      const segments: string[] = [];
+      const rawLines = text.split(/\r?\n/);
+      
+      rawLines.forEach(line => {
+        let chunk = line.trim();
+        if (!chunk) return;
+        
+        const maxSegmentLen = 42; // Perfect balance for standard message area
+        while (chunk.length > maxSegmentLen) {
+          let splitPoint = chunk.substring(0, maxSegmentLen).lastIndexOf('。');
+          if (splitPoint === -1) {
+            splitPoint = chunk.substring(0, maxSegmentLen).lastIndexOf('、');
+          }
+          if (splitPoint === -1 || splitPoint < 12) {
+            splitPoint = maxSegmentLen;
+          }
+          segments.push(chunk.substring(0, splitPoint));
+          chunk = chunk.substring(splitPoint).trim();
+        }
+        if (chunk.length > 0) {
+          segments.push(chunk);
+        }
+      });
+
+      setCurrentSegments(segments.length > 0 ? segments : ['']);
+      setSegmentIndex(0);
+    } else {
+      // Speaker specified: keep as single segment to preserve dialogue role structures
+      setCurrentSegments([text]);
+      setSegmentIndex(0);
+    }
+  }, [currentIndex, currentStep]);
+
   // Play intro sound on start
   useEffect(() => {
     // Trigger on first render of the overlay only after started
@@ -240,7 +360,7 @@ export default function AdventureGameView({
     };
   }, [isStarted]);
 
-  // Trigger typed content update on step changes
+  // Trigger typed content update on step and segment changes
   useEffect(() => {
     if (!isStarted) return;
 
@@ -270,8 +390,8 @@ export default function AdventureGameView({
       return;
     }
 
-    // Handle dialogue types
-    const textToType = currentStep.text || '';
+    // Handle segmented dialogue types
+    const textToType = currentSegments[segmentIndex] || '';
     setTypedText('');
     setIsTyping(true);
 
@@ -329,7 +449,6 @@ export default function AdventureGameView({
         // Autoplay advance logic
         if (isAutoplay) {
           setTimeout(() => {
-            // Check if user hasn't already advanced since completed
             handleNext();
           }, 1800);
         }
@@ -339,7 +458,7 @@ export default function AdventureGameView({
     return () => {
       if (typewriterTimer.current) clearInterval(typewriterTimer.current);
     };
-  }, [currentIndex, isSkip, scenario, isStarted]);
+  }, [currentIndex, segmentIndex, currentSegments, isSkip, scenario, isStarted]);
 
   // Handle auto advance triggers when toggling autoplay
   useEffect(() => {
@@ -361,7 +480,8 @@ export default function AdventureGameView({
         clearInterval(typewriterTimer.current);
         typewriterTimer.current = null;
       }
-      setTypedText(currentStep.text || '');
+      const targetTxt = currentSegments[segmentIndex] || '';
+      setTypedText(targetTxt);
       setIsTyping(false);
 
       const speakerData = findCharacterConfig(currentStep.speaker);
@@ -369,16 +489,24 @@ export default function AdventureGameView({
         ...prev,
         {
           speakerName: speakerData?.displayName || currentStep.speaker,
-          text: currentStep.text || '',
+          text: targetTxt,
           color: speakerData?.color
         }
       ]);
       return;
     }
 
+    // Is there a pending inner segment left? (Plain text pagination / narrator newlines)
+    if (currentStep && currentStep.type === 'dialogue' && segmentIndex < currentSegments.length - 1) {
+      audioSynth.playNext();
+      setSegmentIndex(prev => prev + 1);
+      return;
+    }
+ 
     // Go to next item
     if (currentIndex < scenario.items.length - 1) {
       audioSynth.playNext();
+      setSegmentIndex(0);
       setCurrentIndex(prev => prev + 1);
     } else {
       // Reached physical end of dialogue events
@@ -391,6 +519,8 @@ export default function AdventureGameView({
   const handleReset = () => {
     if (typewriterTimer.current) clearInterval(typewriterTimer.current);
     setCurrentIndex(0);
+    setSegmentIndex(0);
+    setCurrentSegments([]);
     setTypedText('');
     setIsTyping(false);
     setBacklog([]);
@@ -400,55 +530,77 @@ export default function AdventureGameView({
   const activeSpeakerKey = currentStep?.speaker;
   const resolvedSpeakerConfig = findCharacterConfig(activeSpeakerKey);
 
-  // Update active left/right characters based on who is speaking
-  useEffect(() => {
-    const configData = findCharacterConfig(activeSpeakerKey);
-    if (configData) {
-      if (configData.position === 'left') {
-        setActiveLeft(configData);
-      } else if (configData.position === 'right') {
-        setActiveRight(configData);
-      } else {
-        // Fallback for missing position
-        setActiveLeft(configData);
+  // Old active character slot updaters removed
+
+  // Calculate dynamic responsive positions (proportional & overlap preventer)
+  const getCharStyle = (index: number, total: number) => {
+    const isLandscape = windowSize.width > windowSize.height;
+    
+    let leftPercent = 50;
+    let topPx = 0;
+    let widthClass = "w-20 sm:w-28 md:w-36"; // default sizes
+    
+    // Distribute horizontally
+    if (total === 1) {
+      leftPercent = 50;
+    } else if (total === 2) {
+      leftPercent = index === 0 ? 25 : 75;
+    } else if (total === 3) {
+      leftPercent = 15 + index * 35; // 15%, 50%, 85%
+    } else if (total >= 4) {
+      leftPercent = 12 + index * 25.3; // 12%, 37.3%, 62.6%, 88%
+    }
+ 
+    // Smart vertical displacement to prevent overlapping (anti-overlap stagger algorithm)
+    if (!isLandscape) {
+      // Portrait / Mobile mode: Less horizontal space
+      if (total >= 3) {
+        // Mobile portrait + 3/4 characters: 2-line stagger
+        topPx = index % 2 === 0 ? -40 : 25;
+        widthClass = "w-16 min-[380px]:w-[74px] min-[440px]:w-[84px] sm:w-28";
+      } else if (total === 2) {
+        widthClass = "w-20 min-[380px]:w-24 min-[440px]:w-28 sm:w-36";
+      }
+    } else {
+      // Landscape: Plenty of horizontal space, but let's downsize for N >= 4 to keep it elegant
+      if (total >= 4) {
+        widthClass = "w-18 sm:w-24 md:w-32 lg:w-36";
       }
     }
-  }, [activeSpeakerKey, findCharacterConfig]);
+ 
+    return {
+      left: `${leftPercent}%`,
+      topPx,
+      widthClass
+    };
+  };
 
-  // Fallback if activeLeft or activeRight are not set yet but we have characters in config
-  useEffect(() => {
-    if (!activeLeft) {
-      const leftChar = Object.values(config.characters).find(c => c.position === 'left');
-      if (leftChar) setActiveLeft(leftChar);
-    }
-    if (!activeRight) {
-      const rightChar = Object.values(config.characters).find(c => c.position === 'right');
-      if (rightChar) setActiveRight(rightChar);
-    }
-  }, [config.characters, activeLeft, activeRight]);
-
-  // Render character entries
-  const renderCharacter = (charConfig: CharacterConfig | null, styleIsLeft: boolean) => {
-    if (!charConfig) return null;
-    const isSpeaking = findCharacterConfig(activeSpeakerKey)?.key === charConfig.key;
+  // Render character entries dynamically on absolute coordinate positions
+  const renderCharacter = (charConfig: CharacterConfig, index: number, total: number) => {
+    const isSpeaking = resolvedSpeakerConfig?.key === charConfig.key || resolvedSpeakerConfig?.displayName === charConfig.displayName;
     const existsOnStage = currentStep?.type === 'dialogue'; // hide or grey out when click waits
+    const hasSpeaker = !!resolvedSpeakerConfig;
+    const { left, topPx, widthClass } = getCharStyle(index, total);
 
-    // Decide sprite classes based on active state
+    // Decide sprite classes based on active state (Talking: highlighted, listening: dimmed, plain text narrator: deeply dimmed)
     const highlightClass = isSpeaking
       ? 'brightness-100 contrast-100 scale-105 z-20 shadow-2xl ring-2 sm:ring-4 ring-white/50'
-      : 'brightness-50 contrast-90 scale-95 z-10';
+      : hasSpeaker
+        ? 'brightness-50 contrast-90 scale-95 z-10' // some other character is speaking
+        : 'brightness-[0.22] contrast-[0.80] saturate-[0.35] scale-95 z-10'; // plain narrator text mode: deeply dimmed
 
     return (
       <motion.div
         key={charConfig.key}
-        initial={{ opacity: 0, x: styleIsLeft ? -40 : 40, y: 15 }}
-        animate={{ opacity: existsOnStage ? 1 : 0.6, x: 0, y: 0 }}
-        exit={{ opacity: 0, x: styleIsLeft ? -30 : 30 }}
+        style={{ left, transform: `translateX(-50%) translateY(${topPx}px)` }}
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: existsOnStage ? 1 : 0.6, scale: 1 }}
+        exit={{ opacity: 0 }}
         transition={{ type: 'spring', stiffness: 90, damping: 16 }}
-        className={`flex flex-col items-center pointer-events-none select-none max-w-[100px] min-[400px]:max-w-[140px] sm:max-w-[250px] transition-all duration-300 ${highlightClass}`}
+        className={`absolute bottom-0 flex flex-col items-center pointer-events-none select-none transition-all duration-300 ${highlightClass}`}
       >
         {/* Avatar frame */}
-        <div className="relative rounded-xl sm:rounded-2xl overflow-hidden border-2 sm:border-4 border-zinc-900 bg-zinc-800 shadow-xl aspect-square w-20 min-[370px]:w-24 min-[450px]:w-28 sm:w-44 md:w-52">
+        <div className={`relative rounded-xl sm:rounded-2xl overflow-hidden border-2 sm:border-4 border-zinc-900 bg-zinc-800 shadow-xl aspect-square ${widthClass}`}>
           <img
             src={charConfig.avatarUrl}
             alt={charConfig.displayName}
@@ -458,7 +610,7 @@ export default function AdventureGameView({
           
           {/* Status light tag */}
           {isSpeaking && (
-            <div className="absolute top-1 right-1 sm:top-2 sm:right-2 bg-rose-500 text-[7px] sm:text-[9px] text-white px-1 sm:px-1.5 py-0.5 rounded font-black tracking-widest uppercase animate-pulse">
+            <div className="absolute top-1 right-1 sm:top-2 sm:right-2 bg-rose-500 text-[6.5px] sm:text-[9px] text-white px-1 sm:px-1.5 py-0.5 rounded font-black tracking-widest uppercase animate-pulse">
               TALKING
             </div>
           )}
@@ -467,7 +619,7 @@ export default function AdventureGameView({
         {/* Label banner */}
         <div
           style={{ backgroundColor: charConfig.color }}
-          className="mt-1.5 min-[400px]:mt-2 px-2 sm:px-4 py-1 sm:py-1.5 rounded-md sm:rounded-lg text-white font-bold text-[10px] min-[400px]:text-xs sm:text-sm tracking-wide shadow-md border border-white/20 whitespace-nowrap min-w-[70px] min-[400px]:min-w-[95px] text-center"
+          className="mt-1 px-1.5 sm:px-3 py-0.5 sm:py-1 rounded-md sm:rounded-lg text-white font-bold text-[8px] min-[400px]:text-[10px] sm:text-xs tracking-wide shadow-md border border-white/20 whitespace-nowrap min-w-[50px] min-[400px]:min-w-[70px] text-center"
         >
           {charConfig.displayName}
         </div>
@@ -587,22 +739,26 @@ export default function AdventureGameView({
       </header>
 
       {/* Stage: Character Area */}
-      <main className="relative z-10 flex-1 flex items-end justify-between px-2 sm:px-12 md:px-20 lg:px-24 pb-2 sm:pb-4 select-none max-w-5xl w-full mx-auto">
-        <div className="absolute inset-0 bg-transparent z-0 pointer-events-none" />
-
-        {/* Left Character Slot */}
-        <div className="w-[45%] flex justify-start">
-          {renderCharacter(activeLeft, true)}
+      <main className="relative z-10 flex-1 w-full max-w-5xl mx-auto select-none min-h-[140px] sm:min-h-[220px]">
+        {/* Absolute Wrapper to hold all responsive characters */}
+        <div className="absolute inset-x-0 bottom-0 top-0 overflow-visible pointer-events-none">
+          <AnimatePresence>
+            {activeCharacters.map((char, index) => 
+              renderCharacter(char, index, activeCharacters.length)
+            )}
+          </AnimatePresence>
         </div>
 
-        {/* Center / Narrator Slot or Info Indicator */}
-        <div className="w-[10%] flex justify-center pb-12 self-center">
+        {/* Clean slots */}<div>
+
         </div>
 
-        {/* Right Character Slot */}
-        <div className="w-[45%] flex justify-end">
-          {renderCharacter(activeRight, false)}
-        </div>
+        {/* Center slot clean */}
+
+
+        {/* Right slot clean */}
+
+
       </main>
 
       {/* Bottom Segment: UI, controls, and dialog box */}
