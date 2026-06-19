@@ -749,9 +749,7 @@ export default function AdventureGameView({
           </AnimatePresence>
         </div>
 
-        {/* Clean slots */}<div>
-
-        </div>
+        {/* Clean slots */}
 
         {/* Center slot clean */}
 

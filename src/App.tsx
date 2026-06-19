@@ -99,7 +99,7 @@ const extractTextFromHtml = (htmlContent: string) => {
 
 export default function App() {
   const [blogs, setBlogs] = useLocalStorage<BlogItem[]>('adventure-blogs', DEFAULT_BLOGS);
-  const [scenarios, setScenarios] = useLocalStorage<Record<string, ScenarioConfig>>('adventure-scenarios', DEFAULT_SCENARIOS);
+  const scenarios = DEFAULT_SCENARIOS;
   const [selectedBlogId, setSelectedBlogId] = useState<string>(DEFAULT_BLOGS[0]?.id || '');
   const [activeTab, setActiveTab] = useState<'editor' | 'scenarios' | 'integration'>('editor');
   const [copiedText, setCopiedText] = useState(false);
@@ -375,20 +375,7 @@ export default function App() {
       }
       
       // Load from Referrer optionally (Supports raw referrer transition as well for seamless instant play)
-      if (!blogUrlParam && document.referrer) {
-        try {
-          const refUrlObj = new URL(document.referrer);
-          const currentUrlObj = new URL(window.location.href);
-          
-          // Exclude internal domain matches to prevent infinite fetch loops
-          if (refUrlObj.hostname !== currentUrlObj.hostname && 
-              !refUrlObj.hostname.includes('localhost') && 
-              !refUrlObj.hostname.includes('127.0.0.1')) {
-            addLog(`自動検出: リファラー流入を検知 (${document.referrer})。自動的にブログURLとしてセットします。`);
-            blogUrlParam = document.referrer;
-          }
-        } catch(e) {}
-      }
+      // (Removed document.referrer block to prevent accidental fetching in preview environments like iframe)
 
       if (blogUrlParam) {
         fetchScenarioFromUrl(blogUrlParam);
@@ -459,31 +446,6 @@ export default function App() {
 
     setBlogs((prev) => [newBlog, ...prev]);
     setSelectedBlogId(newId);
-  };
-
-  // Upstream update for scenarios
-  const handleUpdateScenario = (id: string, updated: ScenarioConfig) => {
-    setScenarios((prev) => ({
-      ...prev,
-      [id]: updated
-    }));
-  };
-
-  // Upstream insertion of new scenario
-  const handleAddScenario = (newScenario: ScenarioConfig) => {
-    setScenarios((prev) => ({
-      ...prev,
-      [newScenario.id]: newScenario
-    }));
-  };
-
-  // Upstream delete of scenarios
-  const handleDeleteScenario = (id: string) => {
-    setScenarios((prev) => {
-      const copy = { ...prev };
-      delete copy[id];
-      return copy;
-    });
   };
 
   // Play a specific extracted scenario
@@ -665,9 +627,6 @@ export default function App() {
         {activeTab === 'scenarios' && (
           <ScenarioManager
             scenarios={scenarios}
-            onUpdateScenario={handleUpdateScenario}
-            onAddScenario={handleAddScenario}
-            onDeleteScenario={handleDeleteScenario}
           />
         )}
 
