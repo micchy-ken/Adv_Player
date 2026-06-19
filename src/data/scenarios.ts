@@ -7,6 +7,12 @@ import { ScenarioConfig, BlogItem } from '../types';
 import FemaleBossUrl from '../assets/images/anime_female_boss_1781746518604.jpg';
 import MaleSubordinateUrl from '../assets/images/anime_male_subordinate_1781746532145.jpg';
 
+import PrincessUrl from '../assets/images/anime_princess_character_1781857495287.jpg';
+import KnightUrl from '../assets/images/anime_knight_character_1781857508769.jpg';
+import HeroUrl from '../assets/images/anime_hero_character_1781857522707.jpg';
+import DemonKingUrl from '../assets/images/anime_demon_king_character_1781857533496.jpg';
+import FantasyBgUrl from '../assets/images/anime_fantasy_road_background_1781857544323.jpg';
+
 export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
   "上司と部下": {
     id: "上司と部下",
@@ -30,24 +36,38 @@ export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
       }
     }
   },
-  "ファンタジー遭遇": {
-    id: "ファンタジー遭遇",
+  "ファンタジー": {
+    id: "ファンタジー",
     name: "古の遺跡での対峙",
-    backgroundUrl: "https://images.unsplash.com/photo-1518005020951-eccb494ad742?auto=format&fit=crop&w=1200&q=80",
+    backgroundUrl: FantasyBgUrl,
     themeColor: "indigo",
     characters: {
+      "姫": {
+        key: "姫",
+        displayName: "姫",
+        avatarUrl: PrincessUrl,
+        color: "#f472b6", // pink-400
+        position: "left"
+      },
       "勇者": {
         key: "勇者",
-        displayName: "勇者アルス",
-        avatarUrl: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&h=150&q=80",
-        color: "#e11d48", // rose-600
+        displayName: "勇者",
+        avatarUrl: HeroUrl,
+        color: "#ef4444", // red-500
         position: "left"
+      },
+      "騎士": {
+        key: "騎士",
+        displayName: "騎士",
+        avatarUrl: KnightUrl,
+        color: "#94a3b8", // slate-400
+        position: "right"
       },
       "魔王": {
         key: "魔王",
-        displayName: "魔王ルシファー",
-        avatarUrl: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=150&h=150&q=80",
-        color: "#581c87", // purple-800
+        displayName: "魔王",
+        avatarUrl: DemonKingUrl,
+        color: "#a855f7", // purple-500
         position: "right"
       }
     }
@@ -120,24 +140,36 @@ export const DEFAULT_BLOGS: BlogItem[] = [
 今回は、ファンタジーの古典「勇者と魔王」がもし会議室で出会ったら、というパロディ対峙を再現してみました。
 
 【タイトル】
-終焉の遺跡：勇者と魔王の奇妙な対談（サンプル）
+世界平和のための四者会談：それぞれの思惑と落とし所（サンプル）
 
-【ファンタジー遭遇】
-勇者: ついにここまで来たぞ、魔王ルシファー！世界を闇に沈めようとするお前の野望も、ここで終わりだ！
+【ファンタジー】
+勇者: ついにここまで来たぞ、魔王！世界を闇に沈めようとするお前の野望も、ここで終わりだ！
 
-魔王: ほう、よくぞここまで辿り着いたな、勇者アルス。だが「世界を闇に沈める」とはいささか語弊がある。
+魔王: ほう、よくぞここまで辿り着いたな、勇者よ。だが「世界を闇に沈める」とはいささか語弊がある。
 
-勇者: 何だと？各地の村を襲い、不穏な魔力を世界中に巻き散らしているくせに、言い訳か！
- 
-魔王: 私は単に、現在の過剰な太陽光エネルギーによる土壌の乾燥化を懸念し、夜の時間を延長する「クールダウン計画」を推進しているに過ぎぬ。お前たちの作物、最近干からびていただろう？
+姫: 勇者様、お待ちください！お父様から魔王領の環境保全と経済連携について、まずは対話を試みるよう言付かっておりますわ。
+
+騎士: 姫様、下がりなされ！相手は魔術の達人、いつ騙まし討ちに遭うとも限りません。私が盾となります！
+
+魔王: 単に、現在の過剰な太陽光エネルギーによる土壌の乾燥化を懸念し、夜の時間を延長する「クールダウン計画」を推進しているに過ぎぬ。お前たちの作物、最近干からびていただろう？
 
 勇者: え？……あ、確かに最近雨が降らずに農家のおじさんが泣いていたけど……。
 
-魔王: だろ？私は魔族の気象学者を派遣し、雲を呼び、日差しを和らげようとしていたのだ。伝える手法が乱暴だったのは謝るが。
+騎士: 騙されてはいけません！天候を操ること自体が悪魔の所業！我が国の聖騎士団はそれを許しませぬ！
+
+姫: 騎士よ、剣を収めなさい。魔王様、もし我が国の農業技術を提供し、太陽光でも育つ魔界の作物を共同開発すれば、無理な気象操作は不要になりますわね？
+
+魔王: ほう……姫君は聡明だな。我が国の農業基盤が安定するなら、夜の延長は直ちに不要となる。
+
+騎士: な、何と……！
 
 勇者: ま、まさか、悪気はなかったっていうのか！？
  
 魔王: ああ、我らは極めてロジカルに対処している。どうだ、無駄な戦いはやめ、共同で気候変動対策アライアンスを結ばないか？
+
+姫: 提案に賛同いたしますわ。
+
+騎士: 姫様がそう仰るなら……！
 
 勇者: 悔しいけど、筋が通っている……。わかった、私も剣を収めよう。交渉開始だ！
 【おわり】
