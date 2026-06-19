@@ -72,7 +72,9 @@ export function parseBlogContent(content: string): ParsedScenario[] {
       // Look for the bracket pattern at the start of the line
       const startTagMatch = trimmedLine.match(/^\s*(?:\*\*\*|【|［|\[)\s*([^\*\n【】［］\[\]]+?)\s*(?:\*\*\*|】|］|\])\s*(.*)$/);
       
-      if (startTagMatch) {
+      const isCharactersStartTag = startTagMatch && startTagMatch[1].replace(/\s/g, '') === '登場人物';
+
+      if (startTagMatch && !isCharactersStartTag) {
         let tagContent = startTagMatch[1].trim();
         const extraContent = startTagMatch[2].trim();
         
