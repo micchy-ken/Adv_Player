@@ -537,7 +537,7 @@ export default function AdventureGameView({
     const isLandscape = windowSize.width > windowSize.height;
     
     let leftPercent = 50;
-    let topPx = 0;
+    let topPx = -15; // slightly up to avoid footer overlap
     let widthClass = "w-20 sm:w-28 md:w-36"; // default sizes
     
     // Distribute horizontally
@@ -556,7 +556,7 @@ export default function AdventureGameView({
         // Portrait / Mobile mode: Less horizontal space
         if (total >= 3) {
           // Mobile portrait + 3/4 characters: 2-line stagger
-          topPx = index % 2 === 0 ? -40 : 25;
+          topPx = index % 2 === 0 ? -50 : -10;
           widthClass = "w-16 min-[380px]:w-[74px] min-[440px]:w-[84px] sm:w-28";
         } else if (total === 2) {
           widthClass = "w-20 min-[380px]:w-24 min-[440px]:w-28 sm:w-36";
@@ -668,7 +668,7 @@ export default function AdventureGameView({
 
               <button
                 onClick={() => {
-                  if (!document.fullscreenElement) {
+                  if (window.innerWidth <= 768 && !document.fullscreenElement && document.documentElement.requestFullscreen) {
                     document.documentElement.requestFullscreen().catch(() => {});
                   }
                   setIsStarted(true);
