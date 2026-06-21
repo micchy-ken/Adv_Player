@@ -505,9 +505,11 @@ export default function App() {
   const resolvedConfig: ScenarioConfig = activeConfig || {
     id: activePlayScenario?.id || "temp",
     name: "一時的な会話空間",
-    backgroundUrl: "https://images.unsplash.com/photo-1518005020951-eccb494ad742?auto=format&fit=crop&w=1200&q=80",
     themeColor: "indigo",
-    characters: {}
+    characters: {},
+    scenes: {
+      "標準": "https://images.unsplash.com/photo-1518005020951-eccb494ad742?auto=format&fit=crop&w=1200&q=80"
+    }
   };
 
   // Generate dynamic embeddable script for foreign blog owners
