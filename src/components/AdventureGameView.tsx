@@ -116,7 +116,6 @@ export default function AdventureGameView({
   const [backlog, setBacklog] = useState<{ speakerName?: string; text: string; color?: string }[]>([]);
 
   // Dynamically populated up to 4 characters from scenario configurations or dialogues
-  const [activeCharacters, setActiveCharacters] = useState<CharacterConfig[]>([]);
   const [windowSize, setWindowSize] = useState({
     width: typeof window !== 'undefined' ? window.innerWidth : 1024,
     height: typeof window !== 'undefined' ? window.innerHeight : 768
@@ -246,15 +245,12 @@ export default function AdventureGameView({
     return null;
   }, [config]);
 
-  // Resolve characters to render dynamically on stage (maximum 4)
-  useEffect(() => {
+  const activeCharacters = useMemo(() => {
     let charKeys: string[] = [];
 
     if (scenario.initialCharacters && scenario.initialCharacters.length > 0) {
-      // 1. Tag based (from 【登場人物】)
-      charKeys = scenario.initialCharacters;
+      charKeys = [...scenario.initialCharacters];
     } else {
-      // 2. Autofit fallback (scan items to find spoken characters)
       const scannedKeys = new Set<string>();
       scenario.items.forEach(item => {
         if (item.speaker) {
@@ -269,15 +265,21 @@ export default function AdventureGameView({
       });
       charKeys = Array.from(scannedKeys);
     }
+    
+    // Check up to currentIndex for 'characters-change' items
+    for (let i = 0; i <= currentIndex; i++) {
+        const item = scenario.items[i];
+        if (item && item.type === 'characters-change' && item.characters) {
+            charKeys = [...item.characters];
+        }
+    }
 
-    // Resolve actually configuration objects for resolved keys (up to 4)
     const resolved: CharacterConfig[] = [];
     charKeys.slice(0, 4).forEach(key => {
       const configMatch = findCharacterConfig(key);
       if (configMatch) {
         resolved.push(configMatch);
       } else {
-        // Fallback placeholder configuration
         resolved.push({
           key,
           displayName: key,
@@ -288,14 +290,13 @@ export default function AdventureGameView({
       }
     });
 
-    // If completely empty, pre-populate with default characters up to 4
     if (resolved.length === 0) {
       const defaultChars = Object.values(config.characters).slice(0, 4);
       resolved.push(...defaultChars);
     }
 
-    setActiveCharacters(resolved);
-  }, [scenario, config, findCharacterConfig]);
+    return resolved;
+  }, [scenario, config, currentIndex, findCharacterConfig]);
 
   // Handle auto-splitting long/multi-line narrator plain text into click-to-advance chunks
   useEffect(() => {
@@ -375,11 +376,25 @@ export default function AdventureGameView({
       return;
     }
 
-    if (currentStep.type === 'scene-change') {
-      // Scene changes are strictly visual background transitions. Auto-advance immediately without waiting.
+    if (currentStep.type === 'scene-change' || currentStep.type === 'characters-change') {
       setTypedText('');
       setIsTyping(false);
-      setTimeout(() => handleNext(), 100);
+      
+      if (currentStep.type === 'scene-change' && currentStep.sceneTitle) {
+        // If it has a title, pause for a moment or wait for click.
+        // For visual novels, usually chapter titles stay until click, or fade out after 2-3s.
+        // We'll treat it like 'click-wait' so user can see the title, 
+        // OR auto advance after 2 seconds if autoplay is on.
+        setTypedText(`【 ${currentStep.sceneTitle} 】\n\n（クリックして次に進む）`);
+        if (isSkip) {
+          setTimeout(() => handleNext(), 350);
+        } else if (isAutoplay) {
+          setTimeout(() => handleNext(), 2000);
+        }
+      } else {
+        // Instant visual transition, auto-advance immediately.
+        setTimeout(() => handleNext(), 50);
+      }
       return;
     }
 
@@ -585,19 +600,47 @@ export default function AdventureGameView({
     };
   };
 
-  // Derive active background
-  const activeBackgroundUrl = useMemo(() => {
-    let currentBg = config.backgroundUrl;
-    if (config.scenes) {
-      for (let i = 0; i <= currentIndex; i++) {
+  // Derive active background and scene title
+  const currentSceneState = useMemo(() => {
+    let currentBg = (config.scenes && config.scenes['標準']) || '';
+    let solidColor: string | undefined = undefined;
+    let currentTitle: string | undefined = undefined;
+
+    for (let i = 0; i <= currentIndex; i++) {
         const item = scenario.items[i];
-        if (item && item.type === 'scene-change' && item.sceneName && config.scenes[item.sceneName]) {
-          currentBg = config.scenes[item.sceneName];
+        if (item && item.type === 'scene-change' && item.sceneName) {
+          if (item.sceneName === '白') {
+            solidColor = '#ffffff';
+            currentBg = '';
+          } else if (item.sceneName === '黒') {
+            solidColor = '#000000';
+            currentBg = '';
+          } else if (config.scenes && config.scenes[item.sceneName]) {
+            currentBg = config.scenes[item.sceneName];
+            solidColor = undefined;
+          }
+          
+          if (item.sceneTitle !== undefined) {
+             currentTitle = item.sceneTitle;
+          } else {
+             currentTitle = undefined;
+          }
         }
-      }
     }
-    return currentBg;
-  }, [currentIndex, scenario, config]);
+    
+    // Clear title if we move forward to a dialogue item for the same scene?
+    // Wait, scene title is expected to stay until we move to next dialogue?
+    // If it's a scene change it shows Title, then next click goes to dialogue.
+    // If currentStep is not scene-change, should we clear title? The prompt said "if '白「冒頭」' it darkens and shows name".
+    // Usually it signifies a chapter intro. We can check if currentStep IS a scene-change with a title.
+    if (currentStep && currentStep.type === 'scene-change') {
+       if (currentStep.sceneTitle !== undefined) currentTitle = currentStep.sceneTitle;
+    } else {
+       currentTitle = undefined; // Title only displays DURING the scene-change step
+    }
+
+    return { bgUrl: currentBg, solidColor, title: currentTitle };
+  }, [currentIndex, scenario, config, currentStep]);
 
 
   // Render character entries dynamically on absolute coordinate positions
@@ -656,6 +699,7 @@ export default function AdventureGameView({
     <div
       className="fixed inset-0 z-50 overflow-hidden flex flex-col justify-between bg-zinc-950 font-sans text-zinc-100 h-[100dvh]"
       id="adventure-game-overlay"
+      onClick={handleNext}
     >
       {/* Click-to-Start Title Cover Overlay */}
       <AnimatePresence>
@@ -664,8 +708,9 @@ export default function AdventureGameView({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 z-[90] flex flex-col items-center justify-center bg-zinc-950/90 backdrop-blur-md px-6 text-center select-none"
+            className="absolute inset-0 z-[90] flex flex-col items-center justify-center bg-zinc-950/90 backdrop-blur-md px-6 text-center select-none cursor-default"
             id="start-gate-overlay"
+            onClick={(e) => e.stopPropagation()}
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
@@ -702,7 +747,20 @@ export default function AdventureGameView({
                 className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs tracking-widest uppercase rounded-xl shadow-xl shadow-emerald-950/40 active:translate-y-px cursor-pointer transition-all duration-150"
                 id="btn-gate-start"
               >
-                タップしてスタート
+                スタート
+              </button>
+              
+              <button
+                onClick={() => {
+                  if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+                    document.documentElement.requestFullscreen().catch(() => {});
+                  }
+                  setIsStarted(true);
+                }}
+                className="w-full py-3.5 mt-2 bg-zinc-800 hover:bg-zinc-700 text-white font-black text-xs tracking-widest uppercase rounded-xl shadow-xl active:translate-y-px cursor-pointer transition-all duration-150"
+                id="btn-gate-start-fullscreen"
+              >
+                全画面でスタート
               </button>
             </motion.div>
           </motion.div>
@@ -713,23 +771,38 @@ export default function AdventureGameView({
       <div className="absolute inset-0 z-0 bg-black">
         <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/60 z-10" />
         <AnimatePresence mode="popLayout">
-          <motion.img
-            key={activeBackgroundUrl}
-            src={activeBackgroundUrl}
-            alt="Adventure Game Background"
-            referrerPolicy="no-referrer"
-            initial={{ scale: 1.15, filter: 'blur(4px)', opacity: 0 }}
-            animate={{ scale: 1, filter: 'blur(0px)', opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 1.5 }}
-            className="w-full h-full object-cover select-none pointer-events-none absolute inset-0"
-          />
+          {currentSceneState.solidColor ? (
+            <motion.div
+              key={currentSceneState.solidColor}
+              className="w-full h-full absolute inset-0"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 1.5 }}
+              style={{ backgroundColor: currentSceneState.solidColor }}
+            />
+          ) : currentSceneState.bgUrl ? (
+            <motion.img
+              key={currentSceneState.bgUrl}
+              src={currentSceneState.bgUrl}
+              alt="Adventure Game Background"
+              referrerPolicy="no-referrer"
+              initial={{ scale: 1.15, filter: 'blur(4px)', opacity: 0 }}
+              animate={{ scale: 1, filter: 'blur(0px)', opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 1.5 }}
+              className="w-full h-full object-cover select-none pointer-events-none absolute inset-0"
+            />
+          ) : null}
         </AnimatePresence>
       </div>
 
       <div className="relative z-10 flex flex-col flex-1 w-full h-full overflow-hidden">
         {/* Top Header Grid */}
-        <header className="relative z-20 flex items-center justify-between p-3 sm:p-4 md:px-6 bg-gradient-to-b from-black/80 to-transparent">
+        <header 
+          className="relative z-20 flex items-center justify-between p-3 sm:p-4 md:px-6 bg-gradient-to-b from-black/80 to-transparent"
+          onClick={(e) => e.stopPropagation()}
+        >
           <div className="flex flex-col">
             <span className="text-[9px] sm:text-[10px] text-emerald-400 font-bold tracking-wider uppercase flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -803,6 +876,20 @@ export default function AdventureGameView({
               )}
             </AnimatePresence>
           </div>
+          
+          {/* Scene Title Overlay Component */}
+          {currentSceneState.title && (
+             <div className="absolute inset-0 bg-black/40 flex items-center justify-center pointer-events-none z-50">
+               <motion.div
+                 initial={{ opacity: 0, scale: 0.9, letterSpacing: '0.1em' }}
+                 animate={{ opacity: 1, scale: 1, letterSpacing: '0.25em' }}
+                 transition={{ duration: 1 }}
+                 className="text-white text-3xl sm:text-5xl md:text-6xl font-black drop-shadow-[0_0_15px_rgba(0,0,0,0.8)]"
+               >
+                 {currentSceneState.title}
+               </motion.div>
+             </div>
+          )}
         </main>
       </div>
 
@@ -811,7 +898,10 @@ export default function AdventureGameView({
         <div className="w-full max-w-4xl mx-auto flex flex-col gap-2.5">
           
           {/* Sub-Controller Rails */}
-          <div className="flex gap-2 min-[520px]:items-center min-[520px]:justify-between flex-col min-[520px]:flex-row px-1">
+          <div 
+            className="flex gap-2 min-[520px]:items-center min-[520px]:justify-between flex-col min-[520px]:flex-row px-1"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Progress counter */}
             <div className="text-[9px] sm:text-[10px] font-mono text-zinc-400 bg-black/60 px-3 py-1 rounded-full border border-white/5 self-start min-[520px]:self-auto">
               PROGRESS:{' '}
@@ -870,7 +960,6 @@ export default function AdventureGameView({
 
           {/* Interactive Dialogue container */}
           <div
-            onClick={handleNext}
             className={`group relative rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 shadow-2xl transition-all cursor-pointer select-none backdrop-blur border bg-black/75 hover:bg-black/85 flex flex-col min-h-[105px] sm:min-h-[135px] ${
               resolvedSpeakerConfig ? 'border-zinc-700 ring-2 ring-white/5 shadow-white/5' : 'border-zinc-800'
             }`}
@@ -946,9 +1035,12 @@ export default function AdventureGameView({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-40 bg-black/80 flex justify-end"
+            className="fixed inset-0 z-40 bg-black/80 flex justify-end cursor-default"
             id="backlog-overlay"
-            onClick={() => setShowLog(false)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowLog(false);
+            }}
           >
             <motion.div
               initial={{ x: '100%' }}
@@ -1045,7 +1137,7 @@ export default function AdventureGameView({
                   }`}
                   id="btn-ending-close"
                 >
-                  {canClose ? "ブログ編集に戻る" : "まもなく終了..."}
+                  {canClose ? "終了" : "まもなく終了..."}
                 </button>
                 
                 <button

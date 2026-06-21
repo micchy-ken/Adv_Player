@@ -17,7 +17,6 @@ export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
   "上司と部下": {
     id: "上司と部下",
     name: "オフィスでの業務報告",
-    backgroundUrl: "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80",
     themeColor: "amber",
     characters: {
       "上司": {
@@ -36,13 +35,13 @@ export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
       }
     },
     scenes: {
+      "標準": "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80",
       "給湯室": "https://images.unsplash.com/photo-1588854337236-6889d631faa8?auto=format&fit=crop&w=1200&q=80"
     }
   },
   "ファンタジー": {
     id: "ファンタジー",
     name: "古の遺跡での対峙",
-    backgroundUrl: "https://images.unsplash.com/photo-1518005020951-eccb494ad742?auto=format&fit=crop&w=1200&q=80",
     themeColor: "indigo",
     characters: {
       "姫": {
@@ -75,6 +74,7 @@ export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
       }
     },
     scenes: {
+      "標準": "https://images.unsplash.com/photo-1518005020951-eccb494ad742?auto=format&fit=crop&w=1200&q=80",
       "山岳": FantasyBgUrl,
       "王宮": "https://images.unsplash.com/photo-1599707367072-cd6ada2bc375?auto=format&fit=crop&w=1200&q=80"
     }
@@ -82,7 +82,6 @@ export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
   "幼馴染の図書室": {
     id: "幼馴染の図書室",
     name: "放課後の図書室にて",
-    backgroundUrl: "https://images.unsplash.com/photo-1521587760476-6c12a4b040da?auto=format&fit=crop&w=1200&q=80",
     themeColor: "emerald",
     characters: {
       "葵": {
@@ -99,6 +98,9 @@ export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
         color: "#3b82f6", // blue-500
         position: "right"
       }
+    },
+    scenes: {
+      "標準": "https://images.unsplash.com/photo-1521587760476-6c12a4b040da?auto=format&fit=crop&w=1200&q=80"
     }
   }
 };
@@ -106,38 +108,45 @@ export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
 export const DEFAULT_BLOGS: BlogItem[] = [
   {
     id: "blog-1",
-    title: "効率的な議事録作成と上司への報告のツボ（サンプル）",
+    title: "機能説明：全機能の紹介（サンプル）",
     category: "",
     description: "",
-    content: `皆さん、こんにちは！日々の仕事、お疲れ様です。
-会議後の議事録作成、ついつい後回しにしていませんか？
-上司は「早さ」と「要点の明確さ」を求めています。今回は、そんな議事録報告をテーマにした会話を見てみましょう。
+    content: `皆さん、こんにちは！
+こちらのサンプルでは、Adv_Player の全機能をご紹介します。
 
 【タイトル】
-佐藤部長の抜き打ち議事録チェック！（サンプル）
+会話ゲームの全機能紹介
 
 【上司と部下】
+【シーン】標準「ゲームスタート」
+【登場人物】上司
+
+上司: ようこそ！ここでは、記事のテキストから自動生成される会話ゲームの機能を紹介するぞ。
+上司: まず、このように「名前: セリフ」と書くだけで、自動的にキャラクターのアイコンや色が割り当てられる仕組みだ。
+上司: クリックすればどんどん進むから、試してみてくれ。
+
+【シーン】黒「背景とシーンの切り替え」
+上司: 「【シーン】黒」と指定すれば、このように背景をカラーで塗りつぶすことができる。「白」も可能だ。
+
+【シーン】給湯室「画像の切り替え」
+上司: 「【シーン】給湯室」など、設定しておいたシーン名に変更すれば、背景画像をぱっと切り替えられる。
+上司: このとき、「シーン移動」のように括弧でくくった文字があれば、画面中央に演出付きで表示もできるぞ。
+
 【登場人物】上司、部下
-上司: おはよう、部下くん。昨日の定例ミーティングの議事録はもうできているかね？
+部下: お疲れ様です！お呼びでしょうか？
 
-部下: おはようございます！はい、こちらになります。会議終了後、重要決定事項と次回アクションに絞って30分でまとめました。
+上司: おお、部下くん。「【登場人物】上司、部下」と指定することで、途中で新しいキャラクターを登場させることも可能だ。
 
-上司: ほう……どれどれ。
-上司: おお、素晴らしい！決定した事項が太字で強調されていて、誰がいつまでに何をするかが一目でわかる。
+部下: なるほど！最初は上司だけでしたが、後から私が登場したのですね。
+部下: それに、この画面のどこをクリックしてもセリフが次に進むので、とても読みやすいです！
 
-部下: ありがとうございます！先輩に「忙しい上司はスクロールせずに読める構成を好む」とアドバイスをいただきまして。
-
-【シーン】給湯室
-上司: さて、仕事ばかりで疲れたな。せっかくだから給湯室でコーヒーでも飲んで一息入れよう。
-
-部下: はい、佐藤部長！淹れたてのコーヒーをお持ちします！
-
-上司: うん、部下くんが淹れてくれたコーヒーはいつも美味いな。次回も頼むよ！
+上司: うむ。その他にも「設定 (JSON)」タブから、キャラクターや背景のURL、テーマカラーなどを詳細にカスタマイズできる。
+上司: ぜひブログと連携させて、君だけのオリジナル会話劇を作ってみてくれたまえ！
 【おわり】
 
 いかがでしたでしょうか？
-このように、上司が忙しいことを想定し「結論ファースト」「アクションプランの可視化」を最速で共有することが、仕事で評価される大きな鍵になります。
-ぜひ皆さんの現場でも取り入れてみてください。
+このように、簡単なタグを使うだけで高度な演出が可能となります。
+ぜひ皆さんのブログでも取り入れてみてください。
 `
   },
   {

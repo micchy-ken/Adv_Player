@@ -89,23 +89,9 @@ export default function ScenarioManager({ scenarios }: ScenarioManagerProps) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Background URL config */}
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-700 mb-1.5 flex items-center gap-1">
-                    <Image className="w-3.5 h-3.5 text-zinc-500" />
-                    背景画像のURL
-                  </label>
-                  <input
-                    type="text"
-                    value={activeScenario.backgroundUrl}
-                    readOnly
-                    className="w-full text-xs px-3 py-2 rounded-lg border border-zinc-200 bg-zinc-100 text-zinc-500 cursor-not-allowed"
-                  />
-                </div>
-
+              <div className="flex gap-4">
                 {/* Theme highlight */}
-                <div>
+                <div className="flex-1">
                   <label className="block text-xs font-semibold text-zinc-700 mb-1.5 flex items-center gap-1">
                     <Palette className="w-3.5 h-3.5 text-zinc-500" />
                     テーマのアクセント
@@ -119,6 +105,48 @@ export default function ScenarioManager({ scenarios }: ScenarioManagerProps) {
                 </div>
               </div>
             </div>
+
+            {/* Scenes config card boards */}
+            {activeScenario.scenes && Object.keys(activeScenario.scenes).length > 0 && (
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xs font-bold text-zinc-900 flex items-center gap-1.5">
+                    <Image className="w-4 h-4 text-purple-600" />
+                    シーン設定 (背景画像の切り替え)
+                  </h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {Object.entries(activeScenario.scenes).map(([sceneName, sceneUrl]: [string, string]) => (
+                    <div key={sceneName} className="border border-zinc-200 rounded-xl p-4 flex flex-col gap-3 bg-zinc-50/50">
+                      <div className="flex items-start gap-3">
+                        <div className="w-24 h-16 rounded-xl border border-zinc-200 overflow-hidden bg-white shrink-0 shadow">
+                          <img
+                            src={sceneUrl}
+                            alt={`Scene ${sceneName}`}
+                            referrerPolicy="no-referrer"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="flex-1 space-y-1">
+                          <div className="text-[10px] font-mono text-zinc-400">
+                            シーン名: <span className="text-zinc-700 font-bold font-sans bg-zinc-100 px-1 py-0.5 rounded">【シーン】{sceneName}</span>
+                          </div>
+                          <div>
+                            <label className="block text-[9px] font-bold text-zinc-500 mt-2 mb-0.5">画像URL</label>
+                            <input
+                              type="text"
+                              value={sceneUrl}
+                              readOnly
+                              className="w-full text-xs px-2 py-1 rounded border border-zinc-200 bg-zinc-100 text-zinc-500 font-mono cursor-not-allowed"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Character list config card boards */}
             <div>

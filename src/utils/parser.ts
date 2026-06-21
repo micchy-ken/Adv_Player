@@ -165,7 +165,16 @@ export function parseBlogContent(content: string): ParsedScenario[] {
             .map(n => n.trim())
             .filter(n => n.length > 0);
           
-          currentInitialCharacters = names.slice(0, 4);
+          if (itemIndex === 0 && currentInitialCharacters.length === 0) {
+            currentInitialCharacters = names.slice(0, 4);
+          } else {
+            currentItems.push({
+              id: `item-${currentScenarioId}-${itemIndex++}`,
+              type: 'characters-change',
+              characters: names.slice(0, 4),
+              index: itemIndex
+            });
+          }
           continue;
         }
 
@@ -182,10 +191,18 @@ export function parseBlogContent(content: string): ParsedScenario[] {
           }
           
           if (sceneName) {
+            let sceneTitle = undefined;
+            const titleMatch = sceneName.match(/^(.*?)「(.*?)」\s*$/);
+            if (titleMatch) {
+              sceneName = titleMatch[1].trim();
+              sceneTitle = titleMatch[2].trim();
+            }
+
             currentItems.push({
               id: `item-${currentScenarioId}-${itemIndex++}`,
               type: 'scene-change',
               sceneName,
+              sceneTitle,
               index: itemIndex
             });
             continue;

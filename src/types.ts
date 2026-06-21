@@ -14,20 +14,21 @@ export interface CharacterConfig {
 export interface ScenarioConfig {
   id: string; // matches the ***tag***, e.g. "上司と部下"
   name: string; // human readable name
-  backgroundUrl: string;
   themeColor: string; // e.g. "theme-blue"
   characters: Record<string, CharacterConfig>;
-  scenes?: Record<string, string>; // sceneName -> backgroundUrl mapper
+  scenes: Record<string, string>; // sceneName -> backgroundUrl mapper. Default is '標準'
 }
 
-export type DialogueType = 'dialogue' | 'click-wait' | 'scene-change';
+export type DialogueType = 'dialogue' | 'click-wait' | 'scene-change' | 'characters-change';
 
 export interface DialogueItem {
   id: string;
   type: DialogueType;
   speaker?: string; // character key
   text?: string;    // dialogue text
-  sceneName?: string; // name of the scene (e.g., '山岳', '給湯室', '王宮')
+  sceneName?: string; // name of the scene (e.g., '山岳', '給湯室', '王宮', '白')
+  sceneTitle?: string; // title to display in center (e.g., '冒頭')
+  characters?: string[]; // list of active characters
   index: number;    // order in story
 }
 

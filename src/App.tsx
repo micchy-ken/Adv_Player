@@ -579,7 +579,7 @@ export default function App() {
               id="tab-editor"
             >
               <BookOpen className="w-3.5 h-3.5" />
-              記事作成 & プレビュー
+              メイン画面
             </button>
             <button
               onClick={() => setActiveTab('scenarios')}

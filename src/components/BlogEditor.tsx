@@ -42,93 +42,24 @@ export default function BlogEditor({
       <div className="flex flex-col gap-6 bg-white border border-zinc-200 rounded-2xl p-5 md:p-8 shadow-sm" id="blog-editor-main">
         {currentBlog ? (
           <>
-            {/* Meta details with space-saving article switcher */}
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-5 border-b border-zinc-100" id="blog-meta-form">
-              <div className="flex-1 min-w-0">
-                <label className="block text-xs font-semibold text-zinc-700 mb-1.5">記事タイトル</label>
-                <input
-                  type="text"
-                  value={currentBlog.title}
-                  onChange={(e) => onUpdateBlog(currentBlog.id, { title: e.target.value })}
-                  placeholder="記事のタイトルを入力..."
-                  className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-zinc-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 text-zinc-900 font-bold"
-                  id="input-blog-title"
-                />
-              </div>
-              
-              <div className="flex flex-col w-full sm:w-80 shrink-0 gap-1.5 min-w-0">
-                <label className="block text-xs font-semibold text-zinc-700">サンプル記事を切り替え</label>
-                <div className="flex gap-2 min-w-0">
-                  <select
-                    value={selectedBlogId}
-                    onChange={(e) => onSelectBlog(e.target.value)}
-                    className="flex-1 min-w-0 text-ellipsis truncate text-xs px-3 py-2.5 rounded-xl border border-zinc-200 bg-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 text-zinc-800 font-medium cursor-pointer"
-                    id="select-sample-blog"
-                  >
-                    {blogs.map((blog) => (
-                      <option key={blog.id} value={blog.id}>
-                        {blog.title || "無題の記事"}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    onClick={onCreateBlog}
-                    className="flex items-center justify-center gap-1 text-xs px-2 sm:px-3 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-all font-bold cursor-pointer shadow-subtle shrink-0"
-                    id="btn-new-blog-compact"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span className="hidden sm:inline">新規</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Playable Scenarios Alert Bar */}
-            <div id="scenario-play-panel">
-              {parsedScenarios.length > 0 ? (
-                <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 md:p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4 animate-fade-in">
-                  <div className="flex items-start gap-3">
-                    <div className="bg-emerald-100 p-2 rounded-xl text-emerald-700 mt-0.5 shrink-0">
-                      <Layout className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-bold text-emerald-900">
-                        会話ゲームを生成しました ({parsedScenarios.length}件検出)
-                      </h4>
-                      <p className="text-[11px] text-emerald-700 mt-1 leading-relaxed">
-                        記事内の「【タイトル】」と「【おわり】」の間のテキストから、自動演出ゲームをプレビュー可能です。
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-2.5 shrink-0">
-                    {parsedScenarios.map((scenario) => {
-                      const config = scenarios[scenario.id];
-                      const matchedName = config ? config.name : `カスタム(${scenario.id})`;
-                      return (
-                        <button
-                          key={scenario.id}
-                          onClick={() => onPlayScenario(scenario)}
-                          className="flex items-center gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-4 rounded-xl shadow-xs hover:shadow transition-all cursor-pointer transform hover:-translate-y-0.5"
-                          id={`btn-play-scenario-${scenario.id}`}
-                        >
-                          <Play className="w-4 h-4 fill-current" />
-                          <span>{scenario.title || matchedName} を再生</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              ) : (
-                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-2.5">
-                  <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                  <div>
-                    <h4 className="text-xs font-bold text-amber-900">
-                      現在、ゲーム用シナリオタグが検出されていません
-                    </h4>
-                    <p className="text-[11px] text-amber-700 mt-1 leading-relaxed">
-                      本文中に <code className="bg-amber-100/80 font-mono text-[10px] px-1 py-0.5 rounded text-amber-900 font-bold">【タイトル】</code>、<code className="bg-amber-100/80 font-mono text-[10px] px-1 py-0.5 rounded text-amber-900 font-bold">【上司と部下】</code> や <code className="bg-amber-100/80 font-mono text-[10px] px-1 py-0.5 rounded text-amber-900 font-bold">【幼馴染の図書室】</code> などのタグ、役名と台詞、そして <code className="bg-amber-100/80 font-mono text-[10px] px-1 py-0.5 rounded text-amber-900 font-bold">【おわり】</code> タグを追加してください。
-                    </p>
-                  </div>
+            <div className="flex justify-start">
+              {parsedScenarios.length > 0 && (
+                <div className="flex flex-wrap gap-2.5">
+                  {parsedScenarios.map((scenario) => {
+                    const config = scenarios[scenario.id];
+                    const matchedName = config ? config.name : `カスタム(${scenario.id})`;
+                    return (
+                      <button
+                        key={scenario.id}
+                        onClick={() => onPlayScenario(scenario)}
+                        className="flex items-center gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-4 rounded-xl shadow-xs hover:shadow transition-all cursor-pointer transform hover:-translate-y-0.5"
+                        id={`btn-play-scenario-${scenario.id}`}
+                      >
+                        <Play className="w-4 h-4 fill-current" />
+                        <span>{scenario.title || matchedName} を再生</span>
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>
