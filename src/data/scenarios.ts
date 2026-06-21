@@ -34,12 +34,15 @@ export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
         color: "#2563eb", // blue-600
         position: "right"
       }
+    },
+    scenes: {
+      "給湯室": "https://images.unsplash.com/photo-1588854337236-6889d631faa8?auto=format&fit=crop&w=1200&q=80"
     }
   },
   "ファンタジー": {
     id: "ファンタジー",
     name: "古の遺跡での対峙",
-    backgroundUrl: FantasyBgUrl,
+    backgroundUrl: "https://images.unsplash.com/photo-1518005020951-eccb494ad742?auto=format&fit=crop&w=1200&q=80",
     themeColor: "indigo",
     characters: {
       "姫": {
@@ -70,6 +73,10 @@ export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
         color: "#a855f7", // purple-500
         position: "right"
       }
+    },
+    scenes: {
+      "山岳": FantasyBgUrl,
+      "王宮": "https://images.unsplash.com/photo-1599707367072-cd6ada2bc375?auto=format&fit=crop&w=1200&q=80"
     }
   },
   "幼馴染の図書室": {
@@ -110,6 +117,7 @@ export const DEFAULT_BLOGS: BlogItem[] = [
 佐藤部長の抜き打ち議事録チェック！（サンプル）
 
 【上司と部下】
+【登場人物】上司、部下
 上司: おはよう、部下くん。昨日の定例ミーティングの議事録はもうできているかね？
 
 部下: おはようございます！はい、こちらになります。会議終了後、重要決定事項と次回アクションに絞って30分でまとめました。
@@ -119,9 +127,12 @@ export const DEFAULT_BLOGS: BlogItem[] = [
 
 部下: ありがとうございます！先輩に「忙しい上司はスクロールせずに読める構成を好む」とアドバイスをいただきまして。
 
-上司: 実に素晴らしいぞ。これなら私もすぐに役員会で報告できる。部下くん、よくやった！
+【シーン】給湯室
+上司: さて、仕事ばかりで疲れたな。せっかくだから給湯室でコーヒーでも飲んで一息入れよう。
 
-部下: 光栄です！次回も素早いアウトプットを心がけます！
+部下: はい、佐藤部長！淹れたてのコーヒーをお持ちします！
+
+上司: うん、部下くんが淹れてくれたコーヒーはいつも美味いな。次回も頼むよ！
 【おわり】
 
 いかがでしたでしょうか？
@@ -143,6 +154,9 @@ export const DEFAULT_BLOGS: BlogItem[] = [
 世界平和のための四者会談：それぞれの思惑と落とし所（サンプル）
 
 【ファンタジー】
+【登場人物】姫、勇者、騎士、魔王
+【シーン】山岳
+
 勇者: ついにここまで来たぞ、魔王！世界を闇に沈めようとするお前の野望も、ここで終わりだ！
 
 魔王: ほう、よくぞここまで辿り着いたな、勇者よ。だが「世界を闇に沈める」とはいささか語弊がある。
@@ -157,6 +171,7 @@ export const DEFAULT_BLOGS: BlogItem[] = [
 
 騎士: 騙されてはいけません！天候を操ること自体が悪魔の所業！我が国の聖騎士団はそれを許しませぬ！
 
+【シーン】王宮
 姫: 騎士よ、剣を収めなさい。魔王様、もし我が国の農業技術を提供し、太陽光でも育つ魔界の作物を共同開発すれば、無理な気象操作は不要になりますわね？
 
 魔王: ほう……姫君は聡明だな。我が国の農業基盤が安定するなら、夜の延長は直ちに不要となる。

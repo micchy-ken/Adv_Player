@@ -72,9 +72,11 @@ export function parseBlogContent(content: string): ParsedScenario[] {
       // Look for the bracket pattern at the start of the line
       const startTagMatch = trimmedLine.match(/^\s*(?:\*\*\*|【|［|\[)\s*([^\*\n【】［］\[\]]+?)\s*(?:\*\*\*|】|］|\])\s*(.*)$/);
       
-      const isCharactersStartTag = startTagMatch && startTagMatch[1].replace(/\s/g, '') === '登場人物';
+      const tagContentClean = startTagMatch ? startTagMatch[1].replace(/\s/g, '') : '';
+      const isCharactersStartTag = tagContentClean === '登場人物';
+      const isSceneStartTag = tagContentClean === 'シーン';
 
-      if (startTagMatch && !isCharactersStartTag) {
+      if (startTagMatch && !isCharactersStartTag && !isSceneStartTag) {
         let tagContent = startTagMatch[1].trim();
         const extraContent = startTagMatch[2].trim();
         
@@ -165,6 +167,29 @@ export function parseBlogContent(content: string): ParsedScenario[] {
           
           currentInitialCharacters = names.slice(0, 4);
           continue;
+        }
+
+        // Check for 【シーン】
+        const sceneMatch = trimmedLine.match(/^(?:【|\[|［)?シーン(?:】|\]|］)?[：:\s]\s*(.*)$/);
+        const isSpecialSceneTag = trimmedLine.startsWith('【シーン】') || trimmedLine.startsWith('[シーン]') || trimmedLine.startsWith('［シーン］');
+        
+        if (sceneMatch || isSpecialSceneTag) {
+          let sceneName = "";
+          if (isSpecialSceneTag) {
+            sceneName = trimmedLine.replace(/^(?:【シーン】|\[シーン\]|［シーン］)\s*/, '').trim();
+          } else if (sceneMatch) {
+            sceneName = sceneMatch[1].trim();
+          }
+          
+          if (sceneName) {
+            currentItems.push({
+              id: `item-${currentScenarioId}-${itemIndex++}`,
+              type: 'scene-change',
+              sceneName,
+              index: itemIndex
+            });
+            continue;
+          }
         }
 
         // Check if there is a character speaking (colon check)

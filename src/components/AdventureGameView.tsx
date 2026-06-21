@@ -375,6 +375,14 @@ export default function AdventureGameView({
       return;
     }
 
+    if (currentStep.type === 'scene-change') {
+      // Scene changes are strictly visual background transitions. Auto-advance immediately without waiting.
+      setTypedText('');
+      setIsTyping(false);
+      setTimeout(() => handleNext(), 100);
+      return;
+    }
+
     if (currentStep.type === 'click-wait') {
       // Clear or display scenic wait
       setTypedText('（クリックして次に進む）');
@@ -534,8 +542,6 @@ export default function AdventureGameView({
 
   // Calculate dynamic responsive positions (proportional & overlap preventer)
   const getCharStyle = (index: number, total: number) => {
-    const isLandscape = windowSize.width > windowSize.height;
-    
     let leftPercent = 50;
     let topPx = -20; // slightly up to avoid footer overlap
     let widthClass = "w-20 sm:w-28 md:w-36"; // default sizes
@@ -544,29 +550,33 @@ export default function AdventureGameView({
     if (total === 1) {
       leftPercent = 50;
     } else if (total === 2) {
-      leftPercent = index === 0 ? 25 : 75;
-    } else if (total === 3) {
-      leftPercent = 15 + index * 35; // 15%, 50%, 85%
-    } else if (total >= 4) {
-      leftPercent = 12 + index * 25.3; // 12%, 37.3%, 62.6%, 88%
+      leftPercent = index === 0 ? 30 : 70;
+      widthClass = "w-24 sm:w-32 md:w-40";
+    } else if (total === 3 || total === 4) {
+      leftPercent = index % 2 === 0 ? 25 : 75; // Left column (0, 2), Right column (1, 3)
+      topPx = index < 2 ? -70 : -20; // Top row (0, 1), Bottom row (2, 3)
+      widthClass = "w-20 sm:w-28 md:w-36";
+    } else if (total > 4) {
+      leftPercent = 12 + index * 25.3;
     }
  
-      // Smart vertical displacement to prevent overlapping (anti-overlap stagger algorithm)
-      if (!isLandscape) {
-        // Portrait / Mobile mode: Less horizontal space
-        if (total >= 3) {
-          // Mobile portrait + 3/4 characters: 2-line stagger
-          topPx = index % 2 === 0 ? -70 : -20;
-          widthClass = "w-16 min-[380px]:w-[74px] min-[440px]:w-[84px] sm:w-28";
-        } else if (total === 2) {
-          widthClass = "w-20 min-[380px]:w-24 min-[440px]:w-28 sm:w-36";
-        }
-      } else {
-        // Landscape: Plenty of horizontal space, but let's downsize for N >= 4 to keep it elegant
-        if (total >= 4) {
-          widthClass = "w-18 sm:w-24 md:w-32 lg:w-36";
-        }
+    const isLandscape = windowSize.width > windowSize.height;
+    if (!isLandscape) {
+      // Portrait / Mobile mode: Less horizontal space
+      if (total >= 3) {
+        widthClass = "w-16 min-[380px]:w-[74px] min-[440px]:w-[84px] sm:w-28";
+        // Override with 2x2 placement
+        leftPercent = index % 2 === 0 ? 25 : 75;
+        topPx = index < 2 ? -70 : -10;
+      } else if (total === 2) {
+        widthClass = "w-20 min-[380px]:w-24 min-[440px]:w-28 sm:w-36";
       }
+    } else {
+      // Landscape: Plenty of horizontal space, but let's downsize for N >= 4 to keep it elegant
+      if (total >= 4) {
+        widthClass = "w-18 sm:w-24 md:w-32 lg:w-36";
+      }
+    }
  
     return {
       left: `${leftPercent}%`,
@@ -574,6 +584,21 @@ export default function AdventureGameView({
       widthClass
     };
   };
+
+  // Derive active background
+  const activeBackgroundUrl = useMemo(() => {
+    let currentBg = config.backgroundUrl;
+    if (config.scenes) {
+      for (let i = 0; i <= currentIndex; i++) {
+        const item = scenario.items[i];
+        if (item && item.type === 'scene-change' && item.sceneName && config.scenes[item.sceneName]) {
+          currentBg = config.scenes[item.sceneName];
+        }
+      }
+    }
+    return currentBg;
+  }, [currentIndex, scenario, config]);
+
 
   // Render character entries dynamically on absolute coordinate positions
   const renderCharacter = (charConfig: CharacterConfig, index: number, total: number) => {
@@ -685,17 +710,21 @@ export default function AdventureGameView({
       </AnimatePresence>
 
       {/* Background with zoom in effect */}
-      <div className="absolute inset-0 z-0">
+      <div className="absolute inset-0 z-0 bg-black">
         <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/60 z-10" />
-        <motion.img
-          src={config.backgroundUrl}
-          alt="Adventure Game Background"
-          referrerPolicy="no-referrer"
-          initial={{ scale: 1.15, filter: 'blur(4px)' }}
-          animate={{ scale: 1, filter: 'blur(0px)' }}
-          transition={{ duration: 1.5 }}
-          className="w-full h-full object-cover select-none pointer-events-none"
-        />
+        <AnimatePresence mode="popLayout">
+          <motion.img
+            key={activeBackgroundUrl}
+            src={activeBackgroundUrl}
+            alt="Adventure Game Background"
+            referrerPolicy="no-referrer"
+            initial={{ scale: 1.15, filter: 'blur(4px)', opacity: 0 }}
+            animate={{ scale: 1, filter: 'blur(0px)', opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 1.5 }}
+            className="w-full h-full object-cover select-none pointer-events-none absolute inset-0"
+          />
+        </AnimatePresence>
       </div>
 
       <div className="relative z-10 flex flex-col flex-1 w-full h-full overflow-hidden">

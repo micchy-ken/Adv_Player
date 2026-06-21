@@ -17,15 +17,17 @@ export interface ScenarioConfig {
   backgroundUrl: string;
   themeColor: string; // e.g. "theme-blue"
   characters: Record<string, CharacterConfig>;
+  scenes?: Record<string, string>; // sceneName -> backgroundUrl mapper
 }
 
-export type DialogueType = 'dialogue' | 'click-wait';
+export type DialogueType = 'dialogue' | 'click-wait' | 'scene-change';
 
 export interface DialogueItem {
   id: string;
   type: DialogueType;
   speaker?: string; // character key
   text?: string;    // dialogue text
+  sceneName?: string; // name of the scene (e.g., '山岳', '給湯室', '王宮')
   index: number;    // order in story
 }
 
