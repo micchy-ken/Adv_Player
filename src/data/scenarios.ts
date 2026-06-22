@@ -13,8 +13,10 @@ import HeroUrl from '../assets/images/anime_hero_character_1781857522707.jpg';
 import DemonKingUrl from '../assets/images/anime_demon_king_character_1781857533496.jpg';
 import FantasyBgUrl from '../assets/images/anime_fantasy_road_background_1781857544323.jpg';
 import OlUrl from '../assets/images/anime_ol_character_1782087656402.jpg';
-import SagariUrl from '../assets/images/anime_sagari_character_1782087913537.jpg';
-import CafeBgUrl from '../assets/images/anime_cafe_background_1782087899338.jpg';
+import SagariUrl from '../assets/images/anime_sagari_character_v2_1782089342525.jpg';
+import CafeBgUrl from '../assets/images/anime_cafe_interior_background_1782089353718.jpg';
+import DvergUrl from '../assets/images/anime_warrior_dverg_1782089508987.jpg';
+import AlUrl from '../assets/images/anime_cat_fairy_al_1782089520532.jpg';
 
 export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
   "上司と部下": {
@@ -105,14 +107,14 @@ export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
       "ドヴェルグ": {
         key: "ドヴェルグ",
         displayName: "ドヴェルグ",
-        avatarUrl: KnightUrl,
+        avatarUrl: DvergUrl,
         color: "#6b7280", // gray-500
         position: "left"
       },
       "アル": {
         key: "アル",
         displayName: "アル",
-        avatarUrl: HeroUrl,
+        avatarUrl: AlUrl,
         color: "#ef4444", // red-500
         position: "right"
       }
