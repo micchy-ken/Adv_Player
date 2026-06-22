@@ -558,19 +558,19 @@ export default function AdventureGameView({
   // Calculate dynamic responsive positions (proportional & overlap preventer)
   const getCharStyle = (index: number, total: number) => {
     let leftPercent = 50;
-    let topPx = -20; // slightly up to avoid footer overlap
-    let widthClass = "w-20 sm:w-28 md:w-36"; // default sizes
+    let topPx: number | string = -20; // slightly up to avoid footer overlap
+    let widthClass = "w-28 sm:w-36 md:w-44"; // default sizes
     
     // Distribute horizontally
     if (total === 1) {
       leftPercent = 50;
     } else if (total === 2) {
       leftPercent = index === 0 ? 30 : 70;
-      widthClass = "w-24 sm:w-32 md:w-40";
+      widthClass = "w-32 sm:w-40 md:w-48";
     } else if (total === 3 || total === 4) {
       leftPercent = index % 2 === 0 ? 25 : 75; // Left column (0, 2), Right column (1, 3)
       topPx = index < 2 ? -70 : -20; // Top row (0, 1), Bottom row (2, 3)
-      widthClass = "w-20 sm:w-28 md:w-36";
+      widthClass = "w-28 sm:w-36 md:w-44";
     } else if (total > 4) {
       leftPercent = 12 + index * 25.3;
     }
@@ -578,18 +578,25 @@ export default function AdventureGameView({
     const isLandscape = windowSize.width > windowSize.height;
     if (!isLandscape) {
       // Portrait / Mobile mode: Less horizontal space
-      if (total >= 3) {
-        widthClass = "w-16 min-[380px]:w-[74px] min-[440px]:w-[84px] sm:w-28";
-        // Override with 2x2 placement
-        leftPercent = index % 2 === 0 ? 25 : 75;
-        topPx = index < 2 ? -70 : -10;
+      // 大きくして左上・右下など余白なく配置
+      if (total === 1) {
+        widthClass = "w-[65vw] max-w-[320px]";
+        leftPercent = 50;
+        topPx = "-10vh";
       } else if (total === 2) {
-        widthClass = "w-20 min-[380px]:w-24 min-[440px]:w-28 sm:w-36";
+        widthClass = "w-[50vw] max-w-[260px]";
+        leftPercent = index === 0 ? 26 : 74;
+        topPx = index === 0 ? "-36vh" : "-2vh";
+      } else if (total >= 3) {
+        widthClass = "w-[46vw] max-w-[220px]";
+        // 2x2 grid style
+        leftPercent = index % 2 === 0 ? 26 : 74;
+        topPx = index < 2 ? "-36vh" : "-2vh";
       }
     } else {
       // Landscape: Plenty of horizontal space, but let's downsize for N >= 4 to keep it elegant
       if (total >= 4) {
-        widthClass = "w-18 sm:w-24 md:w-32 lg:w-36";
+        widthClass = "w-24 sm:w-32 md:w-40 lg:w-44";
       }
     }
  
@@ -668,12 +675,12 @@ export default function AdventureGameView({
         className={`absolute bottom-0 flex flex-col items-center pointer-events-none select-none transition-all duration-300 ${highlightClass}`}
       >
         {/* Avatar frame */}
-        <div className={`relative rounded-xl sm:rounded-2xl overflow-hidden border-2 sm:border-4 border-zinc-900 bg-zinc-800 shadow-xl aspect-square ${widthClass}`}>
+        <div className={`relative rounded-xl sm:rounded-2xl overflow-hidden border-2 sm:border-4 border-zinc-900 bg-zinc-800 shadow-xl aspect-[3/4] ${widthClass}`}>
           <img
             src={charConfig.avatarUrl}
             alt={charConfig.displayName}
             referrerPolicy="no-referrer"
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover object-top"
           />
           
           {/* Status light tag */}
