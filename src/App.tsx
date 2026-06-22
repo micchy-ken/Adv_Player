@@ -636,12 +636,10 @@ export default function App() {
             onUpdateBlog={handleUpdateBlog}
             onCreateBlog={handleCreateBlog}
             onPlayScenario={handlePlayScenario}
-            onResetBlogs={() => {
-              if (window.confirm('初期サンプルシナリオを復元しますか？独自に編集した内容は上書きされます。')) {
+            onLoadSample={(sampleId) => {
+              if (window.confirm('サンプルシナリオを読み込みますか？現在のリストは上書きされます。')) {
                 setBlogs(DEFAULT_BLOGS);
-                if (DEFAULT_BLOGS.length > 0) {
-                  setSelectedBlogId(DEFAULT_BLOGS[0].id);
-                }
+                setSelectedBlogId(sampleId);
               }
             }}
             scenarios={scenarios}

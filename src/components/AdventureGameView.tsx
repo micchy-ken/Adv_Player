@@ -110,6 +110,7 @@ export default function AdventureGameView({
   }, [isEnded]);
 
   const typewriterTimer = useRef<NodeJS.Timeout | null>(null);
+  const mainRef = useRef<HTMLDivElement>(null);
   const audioSynth = useMemo(() => new RetroAudioSynth(), []);
 
   // Backlog logs previous dialogue strings
@@ -120,6 +121,8 @@ export default function AdventureGameView({
     width: typeof window !== 'undefined' ? window.innerWidth : 1024,
     height: typeof window !== 'undefined' ? window.innerHeight : 768
   });
+  
+  const [stageSize, setStageSize] = useState({ width: 0, height: 0 });
 
   // Flat narrator splitting states
   const [currentSegments, setCurrentSegments] = useState<string[]>([]);
@@ -129,10 +132,15 @@ export default function AdventureGameView({
   useEffect(() => {
     const handleResize = () => {
       setWindowSize({ width: window.innerWidth, height: window.innerHeight });
+      if (mainRef.current) {
+        setStageSize({ width: mainRef.current.clientWidth, height: mainRef.current.clientHeight });
+      }
     };
+    handleResize(); // Initial measurement
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
 
   // Sync mute setting
   useEffect(() => {
@@ -350,6 +358,27 @@ export default function AdventureGameView({
     }
   }, [currentIndex, currentStep]);
 
+  // Preload asset images to ensure smooth transitions
+  useEffect(() => {
+    if (!isStarted) {
+      const imagesToLoad: string[] = [];
+      activeCharacters.forEach(c => {
+         if (c.avatarUrl) imagesToLoad.push(c.avatarUrl);
+      });
+      if (config.scenes) {
+         Object.values(config.scenes).forEach(bg => {
+            if (bg) imagesToLoad.push(bg);
+         });
+      }
+      const distinctImages = Array.from(new Set(imagesToLoad));
+      distinctImages.forEach(src => {
+        const img = new Image();
+        img.referrerPolicy = "no-referrer";
+        img.src = src;
+      });
+    }
+  }, [activeCharacters, config.scenes, isStarted]);
+
   // Play intro sound on start
   useEffect(() => {
     // Trigger on first render of the overlay only after started
@@ -559,62 +588,83 @@ export default function AdventureGameView({
   const getCharStyle = (index: number, total: number) => {
     let leftPercent = 50;
     let topPx: number | string = -20; // slightly up to avoid footer overlap
-    let widthClass = "w-28 sm:w-36 md:w-44 lg:w-52"; // default sizes
-
+    
     const isLandscape = windowSize.width > windowSize.height;
     const isMobile = windowSize.width < 640;
 
+    let widthPx = 224; // default max width
+
     if (isLandscape && !isMobile) {
-      // Landscape Desktop
-      if (total === 1) {
-        leftPercent = 50;
-      } else if (total === 2) {
-        leftPercent = index === 0 ? 30 : 70;
-        widthClass = "w-36 sm:w-44 md:w-56 lg:w-64";
-      } else if (total === 3 || total === 4) {
-        // distribute horizontally
+      if (total === 1) { leftPercent = 50; widthPx = 280; }
+      else if (total === 2) { leftPercent = index === 0 ? 30 : 70; widthPx = 280; }
+      else if (total === 3 || total === 4) {
         leftPercent = 15 + index * (70 / (total - 1));
-        widthClass = "w-32 sm:w-40 md:w-48 lg:w-56";
-      } else if (total > 4) {
+        widthPx = 250;
+      } else {
         leftPercent = 12 + index * 25.3;
+        widthPx = 200;
       }
     } else {
-      // Portrait / Mobile mode: Less horizontal space
-      // 横サイズ、縦サイズを勘案して余白と重なりの少ない配置をダイナミックに判断
       const screenRatio = windowSize.height / windowSize.width;
-      
-      if (total === 1) {
-        widthClass = "w-[65vw] max-w-[320px]";
-        leftPercent = 50;
-        topPx = "-10%";
-      } else if (total === 2) {
-        // 2 characters (Top Left & Bottom Right diagonal arrangement)
-        widthClass = "w-[50vw] max-w-[280px]";
+      if (total === 1) { leftPercent = 50; topPx = "-10%"; widthPx = windowSize.width * 0.65; }
+      else if (total === 2) {
         leftPercent = index === 0 ? 25 : 75;
-        // Dynamically stagger based on ratio so they don't clip top bounds or overlap too much
         const stagger = Math.min(screenRatio * 40, 60); 
         topPx = index === 0 ? `-${stagger}%` : "-5%";
-      } else if (total >= 3) {
-        // 3-4 Characters (2x2 grid)
-        widthClass = "w-[48vw] max-w-[250px]";
-        
+        widthPx = windowSize.width * 0.50;
+      } else {
         const isLeft = index % 2 === 0;
         const isTop = index < 2;
-        
         leftPercent = isLeft ? 24 : 76;
-        
-        // Dynamically separate vertical rows based on screen aspect ratio
-        // Tall screens (> 1.8) can handle a full 80% offset, wide screens (< 1.0) handle ~30%
         const stagger = Math.min(Math.max(screenRatio * 45, 20), 85);
-        
         topPx = isTop ? `-${stagger}%` : "0%";
+        widthPx = windowSize.width * 0.48;
       }
     }
- 
+
+    // Apply strict stageSize boundaries for adaptive scaling
+    if (stageSize.width > 0 && stageSize.height > 0) {
+       let maxCharHeight = stageSize.height * 0.95; // don't fill 100% exactly
+       let expectedHeight = widthPx * 1.3333; // 4/3 ratio
+       
+       if (expectedHeight > maxCharHeight) {
+          // height is smaller than illustration, scale down to fit height
+          expectedHeight = maxCharHeight;
+          widthPx = expectedHeight * 0.75;
+       }
+
+       if (isLandscape || !isMobile) {
+          // If horizontal row doesn't fit, scale down up to 70%
+          const requiredWidth = widthPx * total * 1.05;
+          if (requiredWidth > stageSize.width) {
+             const scaleRate = Math.max(0.7, stageSize.width / requiredWidth);
+             widthPx *= scaleRate;
+          }
+       } else {
+          // If portrait grid width is too narrow, shrink width
+          const cols = total >= 3 ? 2 : total;
+          const requiredWidth = widthPx * cols * 1.1;
+          if (requiredWidth > stageSize.width) {
+             widthPx = (stageSize.width / cols) * 0.9;
+          }
+          // If portrait grid vertical items don't fit, shrink up to 70%
+          if (total >= 3) {
+            const requiredHeight = (widthPx * 1.3333) * 2; 
+            if (requiredHeight > stageSize.height) {
+               const scaleRate = Math.max(0.7, stageSize.height / requiredHeight);
+               widthPx *= scaleRate;
+            }
+          }
+       }
+    }
+
+    // Cap width to sensible max limits
+    widthPx = Math.min(widthPx, isMobile ? 320 : 400);
+
     return {
       left: `${leftPercent}%`,
       topPx,
-      widthClass
+      widthPx
     };
   };
 
@@ -663,10 +713,17 @@ export default function AdventureGameView({
 
   // Render character entries dynamically on absolute coordinate positions
   const renderCharacter = (charConfig: CharacterConfig, index: number, total: number) => {
-    const isSpeaking = resolvedSpeakerConfig?.key === charConfig.key || resolvedSpeakerConfig?.displayName === charConfig.displayName;
+    let isSpeaking = false;
+    if (activeSpeakerKey) {
+      // Split speaking names by common delimiters to prevent substring matching issues 
+      // (e.g. matching "アル" inside "アルス") unless it's an exact match in the delimited list, 
+      // but simple 'includes' is requested. Let's just do a robust include or split.
+      const speakingNames = activeSpeakerKey.split(/[、,，・\.．\s\u3000]+/g);
+      isSpeaking = speakingNames.some(name => name.includes(charConfig.key) || name.includes(charConfig.displayName));
+    }
     const existsOnStage = currentStep?.type === 'dialogue'; // hide or grey out when click waits
-    const hasSpeaker = !!resolvedSpeakerConfig;
-    const { left, topPx, widthClass } = getCharStyle(index, total);
+    const hasSpeaker = !!activeSpeakerKey;
+    const { left, topPx, widthPx } = getCharStyle(index, total);
 
     // Decide sprite classes based on active state (Talking: highlighted, listening: dimmed, plain text narrator: deeply dimmed)
     const highlightClass = isSpeaking
@@ -686,7 +743,7 @@ export default function AdventureGameView({
         className={`absolute bottom-0 flex flex-col items-center pointer-events-none select-none transition-all duration-300 ${highlightClass}`}
       >
         {/* Avatar frame */}
-        <div className={`relative rounded-xl sm:rounded-2xl overflow-hidden border-2 sm:border-4 border-zinc-900 bg-zinc-800 shadow-xl aspect-[3/4] ${widthClass}`}>
+        <div style={{ width: widthPx }} className="relative rounded-xl sm:rounded-2xl overflow-hidden border-2 sm:border-4 border-zinc-900 bg-zinc-800 shadow-xl aspect-[3/4]">
           <img
             src={charConfig.avatarUrl}
             alt={charConfig.displayName}
@@ -874,11 +931,11 @@ export default function AdventureGameView({
         </header>
 
         {/* Stage: Character Area */}
-        <main className="relative z-10 flex-1 w-full max-w-5xl mx-auto select-none min-h-[140px] sm:min-h-[220px]">
+        <main ref={mainRef} className="relative z-10 flex-1 w-full max-w-5xl mx-auto select-none min-h-[140px] sm:min-h-[220px]">
           {/* Absolute Wrapper to hold all responsive characters */}
           <div className="absolute inset-x-0 bottom-0 top-0 overflow-visible pointer-events-none">
             <AnimatePresence>
-              {activeCharacters.map((char, index) => 
+              {isStarted && activeCharacters.map((char, index) => 
                 renderCharacter(char, index, activeCharacters.length)
               )}
             </AnimatePresence>
@@ -974,27 +1031,16 @@ export default function AdventureGameView({
           >
           {/* Speaker title badge block */}
           <AnimatePresence mode="wait">
-            {resolvedSpeakerConfig ? (
+            {activeSpeakerKey ? (
               <motion.div
-                key={resolvedSpeakerConfig.key}
+                key={activeSpeakerKey}
                 initial={{ opacity: 0, y: 5 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -5 }}
-                style={{ backgroundColor: resolvedSpeakerConfig.color }}
-                className="absolute -top-3 left-4 sm:left-6 px-3 sm:px-4 py-0.5 sm:py-1 rounded-md sm:rounded-lg text-white font-black text-[10px] sm:text-xs tracking-wider uppercase shadow-md border border-white/20 whitespace-nowrap"
+                style={{ backgroundColor: resolvedSpeakerConfig?.color || '#3f3f46' }}
+                className="absolute -top-3 left-4 sm:left-6 px-3 sm:px-4 py-0.5 sm:py-1 rounded-md sm:rounded-lg text-white font-black text-[10px] sm:text-xs tracking-wider shadow-md border border-white/20 whitespace-nowrap"
               >
-                {resolvedSpeakerConfig.displayName}
-              </motion.div>
-            ) : currentStep?.type === 'dialogue' && currentStep.speaker ? (
-              // Unrecognized custom character key
-              <motion.div
-                key={currentStep.speaker}
-                initial={{ opacity: 0, y: 5 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -5 }}
-                className="absolute -top-3 left-4 sm:left-6 bg-zinc-700 px-3 sm:px-4 py-0.5 sm:py-1 rounded-md sm:rounded-lg text-white font-black text-[10px] sm:text-xs tracking-wider uppercase shadow-md border border-white/20 whitespace-nowrap"
-              >
-                {currentStep.speaker}
+                {activeSpeakerKey}
               </motion.div>
             ) : null}
           </AnimatePresence>

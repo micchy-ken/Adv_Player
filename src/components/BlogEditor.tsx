@@ -15,7 +15,7 @@ interface BlogEditorProps {
   onUpdateBlog: (id: string, updated: Partial<BlogItem>) => void;
   onCreateBlog: () => void;
   onPlayScenario: (scenario: ParsedScenario) => void;
-  onResetBlogs: () => void;
+  onLoadSample: (sampleId: string) => void;
   scenarios: Record<string, ScenarioConfig>;
 }
 
@@ -26,7 +26,7 @@ export default function BlogEditor({
   onUpdateBlog,
   onCreateBlog,
   onPlayScenario,
-  onResetBlogs,
+  onLoadSample,
   scenarios
 }: BlogEditorProps) {
   const currentBlog = useMemo(() => {
@@ -65,14 +65,27 @@ export default function BlogEditor({
                 </div>
               )}
               
-              <button
-                onClick={onResetBlogs}
-                className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer text-zinc-500 hover:bg-rose-50 hover:text-rose-600 border border-transparent hover:border-rose-100 items-center justify-center shrink-0"
-                title="初期化（サンプル復元）"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                サンプルを復元
-              </button>
+              <div className="relative shrink-0 flex items-center">
+                <select
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val) {
+                      onLoadSample(val);
+                      e.target.value = ""; // reset after selection
+                    }
+                  }}
+                  className="appearance-none bg-zinc-100 hover:bg-zinc-200 text-zinc-600 text-xs font-bold py-2 pl-3 pr-8 rounded-lg cursor-pointer transition-colors border-none outline-none ring-0 w-[140px] truncate"
+                  title="サンプル構成を読み込む"
+                >
+                  <option value="">▼ サンプルを読み込む</option>
+                  <option value="sample-1">・オフィス編（上司と部下）</option>
+                  <option value="sample-2">・ファンタジー編（大人数）</option>
+                  <option value="sample-3">・複数同時発話編（カレー）</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-zinc-500">
+                  <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                </div>
+              </div>
             </div>
 
             {/* Content Textarea */}
