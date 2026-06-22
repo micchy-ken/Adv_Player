@@ -821,6 +821,39 @@ export default function App() {
                 </div>
               </div>
 
+              {/* Debug Status Panel */}
+              <div className="border border-red-200 rounded-xl p-5 bg-red-50/50 space-y-3">
+                <div className="flex items-center gap-2 text-red-900 border-b border-red-100 pb-2 mb-2 font-bold text-xs">
+                  <Info className="w-4 h-4" />
+                  <span>デバッグ・ステータス情報</span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-[10px] sm:text-xs text-mono">
+                  <div>
+                    <span className="block font-black text-red-800 mb-1">現在のURL (window.location.href)</span>
+                    <div className="bg-white border border-red-100 p-2 rounded text-zinc-600 break-all font-mono">
+                      {window.location.href}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="block font-black text-red-800 mb-1">リファラー (document.referrer)</span>
+                    <div className="bg-white border border-red-100 p-2 rounded text-zinc-600 break-all font-mono">
+                      {document.referrer || '(なし - No Referrer)'}
+                    </div>
+                  </div>
+                  <div className="col-span-full">
+                    <span className="block font-black text-red-800 mb-1">ユーザーエージェント</span>
+                    <div className="bg-white border border-red-100 p-2 rounded text-zinc-600 break-all font-mono">
+                      {navigator.userAgent}
+                    </div>
+                  </div>
+                </div>
+                <p className="text-[10px] text-red-700/80 mt-2 leading-relaxed">
+                  ※ はてなブログ等のリンクから飛んできた際、リファラーがトップページURL（例: <code>https://xxx.hatenablog.com/</code>）等に丸められていることがあります。<br/>
+                  その場合「方式C」を利用すると、元の個別記事URLではなくブログのトップページHTMLが取得されてしまい、一番上の記事が自動再生されてしまいます。<br/>
+                  これを回避し、確実に個別記事を読み込ませるには、「方式D」の動的パラメータ自動付与方式をご利用ください。
+                </p>
+              </div>
+
               {/* FAQ Box */}
               <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-xl flex gap-2.5 text-xs text-zinc-700 leading-relaxed font-normal">
                 <Blocks className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />

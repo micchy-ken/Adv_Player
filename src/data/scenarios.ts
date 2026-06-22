@@ -12,11 +12,15 @@ import KnightUrl from '../assets/images/anime_knight_character_1781857508769.jpg
 import HeroUrl from '../assets/images/anime_hero_character_1781857522707.jpg';
 import DemonKingUrl from '../assets/images/anime_demon_king_character_1781857533496.jpg';
 import FantasyBgUrl from '../assets/images/anime_fantasy_road_background_1781857544323.jpg';
+import MedievalPalaceUrl from '../assets/images/medieval_palace_1782112684164.jpg';
+
 import OlUrl from '../assets/images/anime_yukari_longhair_casual_1782096845522.jpg';
 import SagariUrl from '../assets/images/anime_sagari_casual_restored_1782097004534.jpg';
 import CafeBgUrl from '../assets/images/anime_cafe_interior_background_1782089353718.jpg';
 import DvergUrl from '../assets/images/anime_warrior_dverg_1782089508987.jpg';
 import AlUrl from '../assets/images/anime_cat_fairy_al_1782089520532.jpg';
+import FantasyTavernCafeUrl from '../assets/images/fantasy_tavern_cafe_1782112654209.jpg';
+import RuggedMountainPathUrl from '../assets/images/rugged_mountain_path_1782112671288.jpg';
 
 export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
   "上司と部下": {
@@ -82,7 +86,7 @@ export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
     scenes: {
       "標準": FantasyBgUrl,
       "平原": FantasyBgUrl,
-      "王宮": "https://images.unsplash.com/photo-1599707367072-cd6ada2bc375?auto=format&fit=crop&w=1200&q=80"
+      "王宮": MedievalPalaceUrl
     }
   },
   "異世界オーガニックカレー": {
@@ -120,8 +124,9 @@ export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
       }
     },
     scenes: {
-      "標準": CafeBgUrl,
-      "カフェ": CafeBgUrl,
+      "標準": FantasyTavernCafeUrl,
+      "カフェ": FantasyTavernCafeUrl,
+      "山岳": RuggedMountainPathUrl,
       "城下町": "https://images.unsplash.com/photo-1467269204594-9661b134dd2b?auto=format&fit=crop&w=1200&q=80"
     }
   }
