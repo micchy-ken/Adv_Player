@@ -559,44 +559,55 @@ export default function AdventureGameView({
   const getCharStyle = (index: number, total: number) => {
     let leftPercent = 50;
     let topPx: number | string = -20; // slightly up to avoid footer overlap
-    let widthClass = "w-28 sm:w-36 md:w-44"; // default sizes
-    
-    // Distribute horizontally
-    if (total === 1) {
-      leftPercent = 50;
-    } else if (total === 2) {
-      leftPercent = index === 0 ? 30 : 70;
-      widthClass = "w-32 sm:w-40 md:w-48";
-    } else if (total === 3 || total === 4) {
-      leftPercent = index % 2 === 0 ? 25 : 75; // Left column (0, 2), Right column (1, 3)
-      topPx = index < 2 ? -70 : -20; // Top row (0, 1), Bottom row (2, 3)
-      widthClass = "w-28 sm:w-36 md:w-44";
-    } else if (total > 4) {
-      leftPercent = 12 + index * 25.3;
-    }
- 
+    let widthClass = "w-28 sm:w-36 md:w-44 lg:w-52"; // default sizes
+
     const isLandscape = windowSize.width > windowSize.height;
-    if (!isLandscape) {
+    const isMobile = windowSize.width < 640;
+
+    if (isLandscape && !isMobile) {
+      // Landscape Desktop
+      if (total === 1) {
+        leftPercent = 50;
+      } else if (total === 2) {
+        leftPercent = index === 0 ? 30 : 70;
+        widthClass = "w-36 sm:w-44 md:w-56 lg:w-64";
+      } else if (total === 3 || total === 4) {
+        // distribute horizontally
+        leftPercent = 15 + index * (70 / (total - 1));
+        widthClass = "w-32 sm:w-40 md:w-48 lg:w-56";
+      } else if (total > 4) {
+        leftPercent = 12 + index * 25.3;
+      }
+    } else {
       // Portrait / Mobile mode: Less horizontal space
-      // 大きくして左上・右下など余白なく配置
+      // 横サイズ、縦サイズを勘案して余白と重なりの少ない配置をダイナミックに判断
+      const screenRatio = windowSize.height / windowSize.width;
+      
       if (total === 1) {
         widthClass = "w-[65vw] max-w-[320px]";
         leftPercent = 50;
-        topPx = "-10vh";
+        topPx = "-10%";
       } else if (total === 2) {
-        widthClass = "w-[50vw] max-w-[260px]";
-        leftPercent = index === 0 ? 26 : 74;
-        topPx = index === 0 ? "-36vh" : "-2vh";
+        // 2 characters (Top Left & Bottom Right diagonal arrangement)
+        widthClass = "w-[50vw] max-w-[280px]";
+        leftPercent = index === 0 ? 25 : 75;
+        // Dynamically stagger based on ratio so they don't clip top bounds or overlap too much
+        const stagger = Math.min(screenRatio * 40, 60); 
+        topPx = index === 0 ? `-${stagger}%` : "-5%";
       } else if (total >= 3) {
-        widthClass = "w-[46vw] max-w-[220px]";
-        // 2x2 grid style
-        leftPercent = index % 2 === 0 ? 26 : 74;
-        topPx = index < 2 ? "-36vh" : "-2vh";
-      }
-    } else {
-      // Landscape: Plenty of horizontal space, but let's downsize for N >= 4 to keep it elegant
-      if (total >= 4) {
-        widthClass = "w-24 sm:w-32 md:w-40 lg:w-44";
+        // 3-4 Characters (2x2 grid)
+        widthClass = "w-[48vw] max-w-[250px]";
+        
+        const isLeft = index % 2 === 0;
+        const isTop = index < 2;
+        
+        leftPercent = isLeft ? 24 : 76;
+        
+        // Dynamically separate vertical rows based on screen aspect ratio
+        // Tall screens (> 1.8) can handle a full 80% offset, wide screens (< 1.0) handle ~30%
+        const stagger = Math.min(Math.max(screenRatio * 45, 20), 85);
+        
+        topPx = isTop ? `-${stagger}%` : "0%";
       }
     }
  
@@ -682,13 +693,6 @@ export default function AdventureGameView({
             referrerPolicy="no-referrer"
             className="w-full h-full object-cover object-top"
           />
-          
-          {/* Status light tag */}
-          {isSpeaking && (
-            <div className="absolute top-1 right-1 sm:top-2 sm:right-2 bg-rose-500 text-[6.5px] sm:text-[9px] text-white px-1 sm:px-1.5 py-0.5 rounded font-black tracking-widest uppercase animate-pulse">
-              TALKING
-            </div>
-          )}
         </div>
 
         {/* Label banner */}
@@ -745,10 +749,6 @@ export default function AdventureGameView({
 
               <button
                 onClick={() => {
-                   // Only auto-fullscreen on small mobile screens
-                  if (window.innerWidth <= 640 && !document.fullscreenElement && document.documentElement.requestFullscreen) {
-                    document.documentElement.requestFullscreen().catch(() => {});
-                  }
                   setIsStarted(true);
                 }}
                 className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs tracking-widest uppercase rounded-xl shadow-xl shadow-emerald-950/40 active:translate-y-px cursor-pointer transition-all duration-150"
