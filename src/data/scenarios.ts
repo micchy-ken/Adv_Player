@@ -122,11 +122,18 @@ export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
         color: "#ef4444", // red-500
         position: "right"
       },
+      "魔法使い": {
+        key: "魔法使い",
+        displayName: "魔法使い",
+        avatarUrl: "/src/assets/images/mysterious_woman_portrait_1782171595337.jpg",
+        color: "#c084fc", // purple-400
+        position: "left"
+      },
       "謎の女性": {
         key: "謎の女性",
         displayName: "謎の女性",
-        avatarUrl: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=800&q=80",
-        color: "#c084fc", // purple-400
+        avatarUrl: "/src/assets/images/mysterious_woman_light_white_1782171906086.jpg",
+        color: "#f8fafc", // slate-50
         position: "left"
       },
       "謎の男": {
@@ -138,9 +145,9 @@ export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
       }
     },
     scenes: {
-      "標準": FantasyTavernCafeUrl,
-      "カフェ": FantasyTavernCafeUrl,
-      "山岳": RuggedMountainPathUrl,
+      "標準": "/src/assets/images/fantasy_tavern_cafe_1782171567215.jpg",
+      "カフェ": "/src/assets/images/fantasy_tavern_cafe_1782171567215.jpg",
+      "山岳": "/src/assets/images/fantasy_mountain_path_1782171580450.jpg",
       "城下町": "https://images.unsplash.com/photo-1467269204594-9661b134dd2b?auto=format&fit=crop&w=1200&q=80"
     }
   }

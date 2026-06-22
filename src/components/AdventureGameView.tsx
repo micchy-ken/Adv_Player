@@ -924,7 +924,7 @@ export default function AdventureGameView({
       </AnimatePresence>
 
       {/* Background with zoom in effect */}
-      <div className="absolute inset-0 z-0 bg-black">
+      <div className={`absolute inset-0 z-0 transition-colors duration-1000 ${currentSceneState.solidColor ? 'bg-white' : 'bg-black'}`}>
         <div className={`absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/60 z-10 transition-opacity duration-1000 ${currentSceneState.solidColor ? 'opacity-0' : 'opacity-100'}`} />
         <AnimatePresence>
           {currentSceneState.solidColor ? (
@@ -934,7 +934,7 @@ export default function AdventureGameView({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 1.5 }}
+              transition={{ duration: 1.0 }}
               style={{ backgroundColor: currentSceneState.solidColor }}
             />
           ) : currentSceneState.bgUrl ? (
@@ -946,7 +946,7 @@ export default function AdventureGameView({
               initial={{ scale: 1.15, filter: 'blur(4px)', opacity: 0 }}
               animate={{ scale: 1, filter: 'blur(0px)', opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 1.5 }}
+              transition={{ duration: 1.0 }}
               className="w-full h-full object-cover select-none pointer-events-none absolute inset-0 z-0"
             />
           ) : null}
