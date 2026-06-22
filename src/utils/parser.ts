@@ -100,6 +100,27 @@ export function parseBlogContent(content: string): ParsedScenario[] {
 
         // Check if we are already in an active scenario block, and check if this tag is a character speaking, scene, or spotlight 
         if (currentScenarioId) {
+          // Check for end tags first, even inside active scenario block
+          const isEndTag = lowerTag.startsWith("end") || 
+                           tagContent === "おわり" || 
+                           tagContent === "終了" || 
+                           tagContent === "終了タグ" ||
+                           (tagContent.includes("終了") && !tagContent.includes("スポット") && !tagContent.includes("spotlight"));
+          
+          if (isEndTag) {
+            // Reached end tag, save current scenario if exists
+            result.push({
+              id: currentScenarioId,
+              title: extractedTitle || currentTitle,
+              items: [...currentItems],
+              initialCharacters: [...currentInitialCharacters]
+            });
+            currentScenarioId = null;
+            currentItems = [];
+            currentInitialCharacters = [];
+            continue;
+          }
+
           const isKnownScenarioStart = [
             "上司と部下", "ファンタジー", "異世界オーガニックカレー", "幼馴染の図書室"
           ].some(id => cleanTag.includes(id) || id.includes(cleanTag));
@@ -116,28 +137,7 @@ export function parseBlogContent(content: string): ParsedScenario[] {
           if (isKnownNonScenario || hasDialogueColon || (!isKnownScenarioStart && cleanTag.length < 5 && !cleanTag.includes("シナリオ") && !cleanTag.includes("ストーリー"))) {
             // Do not continue here; let it fall through to "if (currentScenarioId)" block
           } else {
-            // It is indeed a scenario boundary tag or an end tag
-            const isEndTag = lowerTag.startsWith("end") || 
-                             tagContent === "おわり" || 
-                             tagContent === "終了" || 
-                             tagContent === "終了タグ" ||
-                             (tagContent.includes("終了") && !tagContent.includes("スポット") && !tagContent.includes("spotlight"));
-            
-            if (isEndTag) {
-              // Reached end tag, save current scenario if exists
-              result.push({
-                id: currentScenarioId,
-                title: extractedTitle || currentTitle,
-                items: [...currentItems],
-                initialCharacters: [...currentInitialCharacters]
-              });
-              currentScenarioId = null;
-              currentItems = [];
-              currentInitialCharacters = [];
-              continue;
-            }
-
-            // Close current scenario and start a new one
+            // Close current scenario and start a new one (since we already checked end tags, this is a new scenario)
             result.push({
               id: currentScenarioId,
               title: extractedTitle || currentTitle,
