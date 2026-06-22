@@ -6,7 +6,7 @@
 import React, { useMemo } from 'react';
 import { BlogItem, ParsedScenario, ScenarioConfig } from '../types';
 import { parseBlogContent } from '../utils/parser';
-import { FileText, Play, Plus, BookOpen, AlertCircle, Layout, HelpCircle } from 'lucide-react';
+import { FileText, Play, Plus, BookOpen, AlertCircle, Layout, HelpCircle, RotateCcw } from 'lucide-react';
 
 interface BlogEditorProps {
   blogs: BlogItem[];
@@ -15,6 +15,7 @@ interface BlogEditorProps {
   onUpdateBlog: (id: string, updated: Partial<BlogItem>) => void;
   onCreateBlog: () => void;
   onPlayScenario: (scenario: ParsedScenario) => void;
+  onResetBlogs: () => void;
   scenarios: Record<string, ScenarioConfig>;
 }
 
@@ -25,6 +26,7 @@ export default function BlogEditor({
   onUpdateBlog,
   onCreateBlog,
   onPlayScenario,
+  onResetBlogs,
   scenarios
 }: BlogEditorProps) {
   const currentBlog = useMemo(() => {
@@ -42,7 +44,7 @@ export default function BlogEditor({
       <div className="flex flex-col gap-6 bg-white border border-zinc-200 rounded-2xl p-5 md:p-8 shadow-sm" id="blog-editor-main">
         {currentBlog ? (
           <>
-            <div className="flex justify-start">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               {parsedScenarios.length > 0 && (
                 <div className="flex flex-wrap gap-2.5">
                   {parsedScenarios.map((scenario) => {
@@ -62,6 +64,15 @@ export default function BlogEditor({
                   })}
                 </div>
               )}
+              
+              <button
+                onClick={onResetBlogs}
+                className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer text-zinc-500 hover:bg-rose-50 hover:text-rose-600 border border-transparent hover:border-rose-100 items-center justify-center shrink-0"
+                title="初期化（サンプル復元）"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                サンプルを復元
+              </button>
             </div>
 
             {/* Content Textarea */}

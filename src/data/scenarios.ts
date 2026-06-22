@@ -12,6 +12,9 @@ import KnightUrl from '../assets/images/anime_knight_character_1781857508769.jpg
 import HeroUrl from '../assets/images/anime_hero_character_1781857522707.jpg';
 import DemonKingUrl from '../assets/images/anime_demon_king_character_1781857533496.jpg';
 import FantasyBgUrl from '../assets/images/anime_fantasy_road_background_1781857544323.jpg';
+import OlUrl from '../assets/images/anime_ol_character_1782087656402.jpg';
+import SagariUrl from '../assets/images/anime_sagari_character_1782087913537.jpg';
+import CafeBgUrl from '../assets/images/anime_cafe_background_1782087899338.jpg';
 
 export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
   "上司と部下": {
@@ -88,14 +91,14 @@ export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
       "由香里": {
         key: "由香里",
         displayName: "由香里",
-        avatarUrl: PrincessUrl,
+        avatarUrl: OlUrl,
         color: "#10b981", // emerald-500
         position: "left"
       },
       "佐賀里": {
         key: "佐賀里",
         displayName: "佐賀里",
-        avatarUrl: FemaleBossUrl,
+        avatarUrl: SagariUrl,
         color: "#f59e0b", // amber-500
         position: "right"
       },
@@ -115,8 +118,8 @@ export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
       }
     },
     scenes: {
-      "標準": "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=1200&q=80",
-      "カフェ": "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=1200&q=80",
+      "標準": CafeBgUrl,
+      "カフェ": CafeBgUrl,
       "城下町": "https://images.unsplash.com/photo-1467269204594-9661b134dd2b?auto=format&fit=crop&w=1200&q=80"
     }
   }
@@ -134,31 +137,36 @@ export const DEFAULT_BLOGS: BlogItem[] = [
 【タイトル】
 会話ゲームの全機能紹介
 
-【上司と部下】
+【ファンタジー】
 【シーン】標準「ゲームスタート」
-【登場人物】上司
+【登場人物】姫
 
-上司: ようこそ！ここでは、記事のテキストから自動生成される会話ゲームの機能を紹介するぞ。
-上司: まず、このように「名前: セリフ」と書くだけで、自動的にキャラクターのアイコンや色が割り当てられる仕組みだ。
-上司: クリックすればどんどん進むから、試してみてくれ。
+姫: ようこそ！ここでは、記事のテキストから自動生成される会話ゲームの機能を紹介しますわ。
+姫: まず、このように「名前: セリフ」と書くだけで、自動的にキャラクターのアイコンや色が割り当てられる仕組みですの。
+姫: クリックすればどんどん進むから、試してみてくださいな。
 
 【シーン】黒「背景とシーンの切り替え」
-上司: 「【シーン】黒」と指定すれば、このように背景をカラーで塗りつぶすことができる。「白」も可能だ。
+姫: 「【シーン】黒」と指定すれば、このように背景をカラーで塗りつぶすことができますわ。「白」も可能ですのよ。
 
-【シーン】給湯室「画像の切り替え」
-上司: 「【シーン】給湯室」など、設定しておいたシーン名に変更すれば、背景画像をぱっと切り替えられる。
-上司: このとき、「シーン移動」のように括弧でくくった文字があれば、画面中央に演出付きで表示もできるぞ。
+【シーン】王宮「画像の切り替え」
+姫: 「【シーン】王宮」など、設定しておいたシーン名に変更すれば、背景画像をぱっと切り替えられますわ。
+姫: このとき、「シーン移動」のように括弧でくくった文字があれば、画面中央に演出付きで表示もできますの。
 
-【登場人物】上司、部下
-部下: お疲れ様です！お呼びでしょうか？
+【登場人物】姫、勇者、騎士、魔王
+勇者: おっ！いつの間に背景が変わったんだ！？
+勇者: って、あれ？ 俺たちも一緒に登場できるのか！
 
-上司: おお、部下くん。「【登場人物】上司、部下」と指定することで、途中で新しいキャラクターを登場させることも可能だ。
+騎士: 「【登場人物】姫、勇者、騎士、魔王」と指定することで、途中で新しいキャラクターを登場させることも可能なようですね。
 
-部下: なるほど！最初は上司だけでしたが、後から私が登場したのですね。
-部下: それに、この画面 of どこをクリックしてもセリフが次に進むので、とても読みやすいです！
+魔王: ほう、我々4人が一堂に会するとはな。それに、この画面のどこをクリックしてもセリフが次に進むので、とても読みやすい画面設計ではないか。
 
-上司: うむ。その他にも「設定 (JSON)」タブから、キャラクターや背景のURL、テーマカラーなどを詳細にカスタマイズできる。
-上司: ぜひブログと連携させて、君だけのオリジナル会話劇を作ってみてくれたまえ！
+騎士: ええ。最大4人までなら、先ほどのスマホ縦画面の例のように、画面サイズと人数に合わせて自動で重なりを抑えた配置に調整される神仕様です！
+
+勇者: なるほどな！最初は姫だけだったけど、俺たちが加わってすごく賑やかになったぜ！
+
+魔王: うむ。その他にも「設定 (JSON)」タブから、キャラクターや背景のURL、テーマカラーなどを詳細にカスタマイズできるようだな。
+
+姫: さあ、ぜひブログと連携させて、あなただけのオリジナル会話劇を作ってみてくださいな！
 【おわり】
 
 いかがでしたでしょうか？
