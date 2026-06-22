@@ -75,8 +75,10 @@ export function parseBlogContent(content: string): ParsedScenario[] {
       const tagContentClean = startTagMatch ? startTagMatch[1].replace(/\s/g, '') : '';
       const isCharactersStartTag = tagContentClean === '登場人物';
       const isSceneStartTag = tagContentClean === 'シーン';
+      const isSpotlightStartTag = tagContentClean === 'スポット';
+      const isSpotlightEndTagGlobal = tagContentClean === 'スポット終了';
 
-      if (startTagMatch && !isCharactersStartTag && !isSceneStartTag) {
+      if (startTagMatch && !isCharactersStartTag && !isSceneStartTag && !isSpotlightStartTag && !isSpotlightEndTagGlobal) {
         let tagContent = startTagMatch[1].trim();
         const extraContent = startTagMatch[2].trim();
         
