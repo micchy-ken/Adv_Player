@@ -91,63 +91,110 @@ export function parseBlogContent(content: string): ParsedScenario[] {
         }
 
         const lowerTag = tagContent.toLowerCase();
+        const cleanTag = tagContent.replace(/[\s\u3000\u200B-\u200D\uFEFF]/g, '').trim();
 
         // Skip common blog headers/elements that use bracket syntax but aren't scenario blocks
         if (IGNORED_TAG_KEYWORDS.some(k => lowerTag === k || lowerTag.startsWith(k) || k.startsWith(lowerTag))) {
           continue;
         }
-        
-        const isEndTag = lowerTag.startsWith("end") || 
-                         tagContent === "おわり" || 
-                         tagContent === "終了" || 
-                         tagContent === "終了タグ" ||
-                         (tagContent.includes("終了") && !tagContent.includes("スポット") && !tagContent.includes("spotlight"));
-        
-        if (isEndTag) {
-          // Reached end tag, save current scenario if exists
-          if (currentScenarioId) {
+
+        // Check if we are already in an active scenario block, and check if this tag is a character speaking, scene, or spotlight 
+        if (currentScenarioId) {
+          const isKnownScenarioStart = [
+            "上司と部下", "ファンタジー", "異世界オーガニックカレー", "幼馴染の図書室"
+          ].some(id => cleanTag.includes(id) || id.includes(cleanTag));
+
+          const isKnownNonScenario = [
+            "由香里", "佐賀里", "ドヴェルグ", "アル", "葵", "颯太", "上司", "部下", "姫", "勇者", "騎士", "魔王",
+            "シーン", "登場人物", "スポット", "スポット終了", "標準", "オフィス", "給湯室", "平原", "王宮", "図書室"
+          ].some(word => cleanTag === word || cleanTag.includes(word));
+
+          const hasDialogueColon = trimmedLine.includes("：") || trimmedLine.includes(":");
+
+          // If it's a character or scene tag or dialogue colon inside an active scenario, DO NOT treat it as a new scenario start.
+          // Let it fall through to be processed as step/dialogue content within the existing scenario.
+          if (isKnownNonScenario || hasDialogueColon || (!isKnownScenarioStart && cleanTag.length < 5 && !cleanTag.includes("シナリオ") && !cleanTag.includes("ストーリー"))) {
+            // Do not continue here; let it fall through to "if (currentScenarioId)" block
+          } else {
+            // It is indeed a scenario boundary tag or an end tag
+            const isEndTag = lowerTag.startsWith("end") || 
+                             tagContent === "おわり" || 
+                             tagContent === "終了" || 
+                             tagContent === "終了タグ" ||
+                             (tagContent.includes("終了") && !tagContent.includes("スポット") && !tagContent.includes("spotlight"));
+            
+            if (isEndTag) {
+              // Reached end tag, save current scenario if exists
+              result.push({
+                id: currentScenarioId,
+                title: extractedTitle || currentTitle,
+                items: [...currentItems],
+                initialCharacters: [...currentInitialCharacters]
+              });
+              currentScenarioId = null;
+              currentItems = [];
+              currentInitialCharacters = [];
+              continue;
+            }
+
+            // Close current scenario and start a new one
             result.push({
               id: currentScenarioId,
               title: extractedTitle || currentTitle,
               items: [...currentItems],
               initialCharacters: [...currentInitialCharacters]
             });
-            currentScenarioId = null;
             currentItems = [];
             currentInitialCharacters = [];
+
+            // Check for configId extraction (e.g. `上司と部下「もしも苗字が三井だったら」`)
+            let configId = tagContent;
+            let parsedTitle = tagContent;
+            const bracketMatch = tagContent.match(/^(.+?)「(.*?)」$/);
+            if (bracketMatch) {
+              configId = bracketMatch[1].trim();
+              parsedTitle = configId + "「" + bracketMatch[2].trim() + "」";
+            } else if (extraContent) {
+              parsedTitle = tagContent + " " + extraContent;
+            }
+
+            // Start new scenario block
+            currentScenarioId = configId; // Map specifically to the config ID base
+            currentTitle = extractedTitle || parsedTitle;
+            currentInitialCharacters = [];
+            itemIndex = 0;
+            continue;
           }
+        } else {
+          // No active scenario block, so any bracket content (not title / ignored) starts one!
+          const isEndTag = lowerTag.startsWith("end") || 
+                           tagContent === "おわり" || 
+                           tagContent === "終了" || 
+                           tagContent === "終了タグ" ||
+                           (tagContent.includes("終了") && !tagContent.includes("スポット") && !tagContent.includes("spotlight"));
+          
+          if (isEndTag) {
+            continue;
+          }
+
+          // Check for configId extraction (e.g. `上司と部下「もしも苗字が三井だったら」`)
+          let configId = tagContent;
+          let parsedTitle = tagContent;
+          const bracketMatch = tagContent.match(/^(.+?)「(.*?)」$/);
+          if (bracketMatch) {
+            configId = bracketMatch[1].trim();
+            parsedTitle = configId + "「" + bracketMatch[2].trim() + "」";
+          } else if (extraContent) {
+            parsedTitle = tagContent + " " + extraContent;
+          }
+
+          // Start new scenario block
+          currentScenarioId = configId; // Map specifically to the config ID base
+          currentTitle = extractedTitle || parsedTitle;
+          currentInitialCharacters = [];
+          itemIndex = 0;
           continue;
         }
-
-        // If already in a scenario block, close it before starting a new one
-        if (currentScenarioId) {
-          result.push({
-            id: currentScenarioId,
-            title: extractedTitle || currentTitle,
-            items: [...currentItems],
-            initialCharacters: [...currentInitialCharacters]
-          });
-          currentItems = [];
-          currentInitialCharacters = [];
-        }
-
-        // Check for configId extraction (e.g. `上司と部下「もしも苗字が三井だったら」`)
-        let configId = tagContent;
-        let parsedTitle = tagContent;
-        const bracketMatch = tagContent.match(/^(.+?)「(.*?)」$/);
-        if (bracketMatch) {
-          configId = bracketMatch[1].trim();
-          parsedTitle = configId + "「" + bracketMatch[2].trim() + "」";
-        } else if (extraContent) {
-          parsedTitle = tagContent + " " + extraContent;
-        }
-
-        // Start new scenario block
-        currentScenarioId = configId; // Map specifically to the config ID base
-        currentTitle = extractedTitle || parsedTitle;
-        currentInitialCharacters = [];
-        itemIndex = 0;
-        continue;
       }
 
       // Inside a scenario block
@@ -187,6 +234,45 @@ export function parseBlogContent(content: string): ParsedScenario[] {
           continue;
         }
 
+        // Check for Spotlight tags first to prevent any confusion with scenery/scenario tags
+        const isSpotlightEndTag = trimmedLineClean.includes('スポット終了') || 
+                                  trimmedLineClean === '【スポット終了】' || 
+                                  trimmedLineClean === '[スポット終了]' || 
+                                  trimmedLineClean === '［スポット終了］';
+
+        if (isSpotlightEndTag) {
+          currentItems.push({
+            id: `item-${currentScenarioId}-${itemIndex++}`,
+            type: 'spotlight-end',
+            text: '（スポットライト終了）',
+            index: itemIndex
+          });
+          continue;
+        }
+
+        const spotlightMatch = trimmedLine.match(/^(?:【|\[|［)?\s*スポット\s*(?:】|\]|］)?[：:\s]\s*(.*)$/);
+        const isSpecialSpotlightTag = trimmedLineClean.startsWith('【スポット】') || trimmedLineClean.startsWith('[スポット]') || trimmedLineClean.startsWith('［スポット］');
+
+        if (spotlightMatch || isSpecialSpotlightTag) {
+          let spotlightName = "";
+          if (isSpecialSpotlightTag) {
+            spotlightName = trimmedLine.replace(/^(?:【スポット】|\[スポット\]|［スポット］)\s*/, '').trim();
+          } else if (spotlightMatch) {
+            spotlightName = spotlightMatch[1].trim();
+          }
+          
+          if (spotlightName) {
+            currentItems.push({
+              id: `item-${currentScenarioId}-${itemIndex++}`,
+              type: 'spotlight',
+              speaker: spotlightName,
+              text: `（${spotlightName}にスポットライトを当てます）`,
+              index: itemIndex
+            });
+            continue;
+          }
+        }
+
         // Check for 【シーン】
         const sceneMatch = trimmedLine.match(/^(?:【|\[|［)?シーン(?:】|\]|］)?[：:\s]\s*(.*)$/);
         const isSpecialSceneTag = trimmedLine.startsWith('【シーン】') || trimmedLine.startsWith('[シーン]') || trimmedLine.startsWith('［シーン］');
@@ -212,40 +298,6 @@ export function parseBlogContent(content: string): ParsedScenario[] {
               type: 'scene-change',
               sceneName,
               sceneTitle,
-              index: itemIndex
-            });
-            continue;
-          }
-        }
-
-        // Check for 【スポット】 and 【スポット終了】
-        const spotlightMatch = trimmedLine.match(/^(?:【|\[|［)?\s*スポット\s*(?:】|\]|］)?[：:\s]\s*(.*)$/);
-        const isSpecialSpotlightTag = trimmedLineClean.startsWith('【スポット】') || trimmedLineClean.startsWith('[スポット]') || trimmedLineClean.startsWith('［スポット］');
-        
-        const isSpotlightEndTag = trimmedLineClean.includes('スポット終了') || trimmedLineClean === '【スポット終了】' || trimmedLineClean === '[スポット終了]' || trimmedLineClean === '［スポット終了］';
-
-        if (isSpotlightEndTag) {
-          currentItems.push({
-            id: `item-${currentScenarioId}-${itemIndex++}`,
-            type: 'spotlight-end',
-            index: itemIndex
-          });
-          continue;
-        }
-
-        if (spotlightMatch || isSpecialSpotlightTag) {
-          let spotlightName = "";
-          if (isSpecialSpotlightTag) {
-            spotlightName = trimmedLine.replace(/^(?:【スポット】|\[スポット\]|［スポット］)\s*/, '').trim();
-          } else if (spotlightMatch) {
-            spotlightName = spotlightMatch[1].trim();
-          }
-          
-          if (spotlightName) {
-            currentItems.push({
-              id: `item-${currentScenarioId}-${itemIndex++}`,
-              type: 'spotlight',
-              speaker: spotlightName,
               index: itemIndex
             });
             continue;

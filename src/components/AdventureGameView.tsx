@@ -405,10 +405,11 @@ export default function AdventureGameView({
       return;
     }
 
-    if (currentStep.type === 'scene-change' || currentStep.type === 'characters-change' || currentStep.type === 'spotlight' || currentStep.type === 'spotlight-end') {
+    if (currentStep.type === 'scene-change' || currentStep.type === 'characters-change') {
       setTypedText('');
       setIsTyping(false);
       
+      let timer: any;
       if (currentStep.type === 'scene-change' && currentStep.sceneTitle) {
         // If it has a title, pause for a moment or wait for click.
         // For visual novels, usually chapter titles stay until click, or fade out after 2-3s.
@@ -416,15 +417,15 @@ export default function AdventureGameView({
         // OR auto advance after 2 seconds if autoplay is on.
         setTypedText(`【 ${currentStep.sceneTitle} 】\n\n（クリックして次に進む）`);
         if (isSkip) {
-          setTimeout(() => handleNext(), 350);
+          timer = setTimeout(() => handleNext(), 350);
         } else if (isAutoplay) {
-          setTimeout(() => handleNext(), 2000);
+          timer = setTimeout(() => handleNext(), 2000);
         }
       } else {
         // Instant visual transition, auto-advance immediately.
-        setTimeout(() => handleNext(), 50);
+        timer = setTimeout(() => handleNext(), 50);
       }
-      return;
+      return () => { if (timer) clearTimeout(timer); };
     }
 
     if (currentStep.type === 'click-wait') {
@@ -434,12 +435,13 @@ export default function AdventureGameView({
       
       // Auto advance or play wait beep
       audioSynth.playWait();
+      let timer: any;
       if (isSkip) {
-        setTimeout(() => handleNext(), 350);
+        timer = setTimeout(() => handleNext(), 350);
       } else if (isAutoplay) {
-        setTimeout(() => handleNext(), 1500);
+        timer = setTimeout(() => handleNext(), 1500);
       }
-      return;
+      return () => { if (timer) clearTimeout(timer); };
     }
 
     // Handle segmented dialogue types
@@ -464,8 +466,8 @@ export default function AdventureGameView({
       ]);
 
       // Automatically advance after a short latency
-      setTimeout(() => handleNext(), 150);
-      return;
+      const timer = setTimeout(() => handleNext(), 150);
+      return () => clearTimeout(timer);
     }
 
     let charIdx = 0;
@@ -526,7 +528,9 @@ export default function AdventureGameView({
 
   // Advance story
   const handleNext = () => {
-    if (isTyping && currentStep && currentStep.type === 'dialogue') {
+    const isSpeechType = currentStep && (currentStep.type === 'dialogue' || currentStep.type === 'spotlight' || currentStep.type === 'spotlight-end');
+
+    if (isTyping && currentStep && isSpeechType) {
       // Click during typewriter skips/instant-displays the text
       if (typewriterTimer.current) {
         clearInterval(typewriterTimer.current);
@@ -549,7 +553,7 @@ export default function AdventureGameView({
     }
 
     // Is there a pending inner segment left? (Plain text pagination / narrator newlines)
-    if (currentStep && currentStep.type === 'dialogue' && segmentIndex < currentSegments.length - 1) {
+    if (currentStep && isSpeechType && segmentIndex < currentSegments.length - 1) {
       audioSynth.playNext();
       setSegmentIndex(prev => prev + 1);
       return;
@@ -760,7 +764,7 @@ export default function AdventureGameView({
     }
 
     // existsOnStage: hide or grey out when click waits, but if spotlight is on, only show the spotlighted one
-    const existsOnStage = currentStep?.type === 'dialogue' || currentStep?.type === 'spotlight'; 
+    const existsOnStage = currentStep?.type === 'dialogue' || currentStep?.type === 'spotlight' || currentStep?.type === 'spotlight-end'; 
     const hasSpeaker = !!activeSpeakerKey;
 
     let targetOpacity = existsOnStage ? 1 : 0.6;
@@ -881,6 +885,16 @@ export default function AdventureGameView({
                 id="btn-gate-start-fullscreen"
               >
                 全画面でスタート
+              </button>
+
+              <button
+                onClick={() => {
+                  onClose();
+                }}
+                className="w-full py-3.5 mt-2 bg-zinc-950/60 border border-zinc-800 hover:bg-zinc-900 text-rose-300 hover:text-rose-200 font-bold text-xs tracking-widest uppercase rounded-xl shadow-xl active:translate-y-px cursor-pointer transition-all duration-150"
+                id="btn-gate-close"
+              >
+                終了
               </button>
             </motion.div>
           </motion.div>
@@ -1074,20 +1088,6 @@ export default function AdventureGameView({
               >
                 <RotateCcw className="w-2.5 h-2.5 sm:w-3 h-3" />
                 <span>最初から</span>
-              </button>
-
-              <button
-                onClick={() => {
-                  if (document.fullscreenElement && document.exitFullscreen) {
-                    document.exitFullscreen().catch(() => {});
-                  }
-                  onClose();
-                }}
-                className="flex items-center gap-1 bg-rose-950/80 border border-rose-800/60 hover:bg-rose-900 text-rose-200 hover:text-white px-2.5 sm:px-3 py-1 rounded-full text-[9px] sm:text-[10px] transition-colors cursor-pointer font-bold"
-                title="演出再生を今すぐ終了して、元のブログ画面に戻ります"
-              >
-                <X className="w-2.5 h-2.5 sm:w-3 h-3" />
-                <span>今すぐ終了</span>
               </button>
             </div>
           </div>
