@@ -209,6 +209,40 @@ export function parseBlogContent(content: string): ParsedScenario[] {
           }
         }
 
+        // Check for 【スポット】 and 【スポット終了】
+        const spotlightMatch = trimmedLine.match(/^(?:【|\[|［)?スポット(?:】|\]|］)?[：:\s]\s*(.*)$/);
+        const isSpecialSpotlightTag = trimmedLine.startsWith('【スポット】') || trimmedLine.startsWith('[スポット]') || trimmedLine.startsWith('［スポット］');
+        
+        const isSpotlightEndTag = trimmedLine === '【スポット終了】' || trimmedLine === '[スポット終了]' || trimmedLine === '［スポット終了］';
+
+        if (isSpotlightEndTag) {
+          currentItems.push({
+            id: `item-${currentScenarioId}-${itemIndex++}`,
+            type: 'spotlight-end',
+            index: itemIndex
+          });
+          continue;
+        }
+
+        if (spotlightMatch || isSpecialSpotlightTag) {
+          let spotlightName = "";
+          if (isSpecialSpotlightTag) {
+            spotlightName = trimmedLine.replace(/^(?:【スポット】|\[スポット\]|［スポット］)\s*/, '').trim();
+          } else if (spotlightMatch) {
+            spotlightName = spotlightMatch[1].trim();
+          }
+          
+          if (spotlightName) {
+            currentItems.push({
+              id: `item-${currentScenarioId}-${itemIndex++}`,
+              type: 'spotlight',
+              speaker: spotlightName,
+              index: itemIndex
+            });
+            continue;
+          }
+        }
+
         // Check if there is a character speaking (colon check)
         // Match both halfwidth and fullwidth colons, e.g. "佐藤:" or "佐藤：" or "佐藤 : "
         const speakerMatch = rawLine.match(/^([^：:\s]{1,15})\s*[：:]\s*(.*)$/);

@@ -405,7 +405,7 @@ export default function AdventureGameView({
       return;
     }
 
-    if (currentStep.type === 'scene-change' || currentStep.type === 'characters-change') {
+    if (currentStep.type === 'scene-change' || currentStep.type === 'characters-change' || currentStep.type === 'spotlight' || currentStep.type === 'spotlight-end') {
       setTypedText('');
       setIsTyping(false);
       
@@ -582,6 +582,25 @@ export default function AdventureGameView({
   const activeSpeakerKey = currentStep?.speaker;
   const resolvedSpeakerConfig = findCharacterConfig(activeSpeakerKey);
 
+  const activeSpotlightKey = useMemo(() => {
+    let spotlight: string | undefined = undefined;
+    for (let i = 0; i <= currentIndex; i++) {
+        const item = scenario.items[i];
+        if (item.type === 'spotlight') {
+            spotlight = item.speaker;
+        } else if (item.type === 'spotlight-end') {
+            spotlight = undefined;
+        } else if (item.type === 'dialogue' && item.speaker && spotlight) {
+            const speakingNames = item.speaker.split(/[、,，・\.．\s\u3000]+/g);
+            const isSame = speakingNames.some(n => n.includes(spotlight!) || spotlight!.includes(n));
+            if (!isSame) {
+                spotlight = undefined;
+            }
+        }
+    }
+    return spotlight;
+  }, [currentIndex, scenario]);
+
   // Old active character slot updaters removed
 
   // Calculate dynamic responsive positions (proportional & overlap preventer)
@@ -721,35 +740,72 @@ export default function AdventureGameView({
       const speakingNames = activeSpeakerKey.split(/[、,，・\.．\s\u3000]+/g);
       isSpeaking = speakingNames.some(name => name.includes(charConfig.key) || name.includes(charConfig.displayName));
     }
-    const existsOnStage = currentStep?.type === 'dialogue'; // hide or grey out when click waits
-    const hasSpeaker = !!activeSpeakerKey;
+
+    let isSpotlighted = false;
+    if (activeSpotlightKey) {
+        const spotlightNames = activeSpotlightKey.split(/[、,，・\.．\s\u3000]+/g);
+        isSpotlighted = spotlightNames.some(name => name.includes(charConfig.key) || name.includes(charConfig.displayName));
+    }
+
     const { left, topPx, widthPx } = getCharStyle(index, total);
 
+    let resolvedLeft = left;
+    let resolvedTopPx = topPx;
+    let resolvedWidthPx = widthPx;
+
+    if (activeSpotlightKey && isSpotlighted) {
+        resolvedLeft = '50%';
+        resolvedTopPx = typeof topPx === 'string' && topPx.includes('%') ? `calc(${topPx} + 5%)` : -10;
+        resolvedWidthPx = widthPx * 1.15;
+    }
+
+    // existsOnStage: hide or grey out when click waits, but if spotlight is on, only show the spotlighted one
+    const existsOnStage = currentStep?.type === 'dialogue' || currentStep?.type === 'spotlight'; 
+    const hasSpeaker = !!activeSpeakerKey;
+
+    let targetOpacity = existsOnStage ? 1 : 0.6;
+    if (activeSpotlightKey && !isSpotlighted) {
+        targetOpacity = 0; // Hide others during spotlight
+    }
+
     // Decide sprite classes based on active state (Talking: highlighted, listening: dimmed, plain text narrator: deeply dimmed)
-    const highlightClass = isSpeaking
-      ? 'brightness-100 contrast-100 scale-105 z-20 shadow-2xl ring-2 sm:ring-4 ring-white/50'
-      : hasSpeaker
-        ? 'brightness-50 contrast-90 scale-95 z-10' // some other character is speaking
-        : 'brightness-[0.22] contrast-[0.80] saturate-[0.35] scale-95 z-10'; // plain narrator text mode: deeply dimmed
+    let highlightClass = '';
+    if (activeSpotlightKey) {
+        if (isSpotlighted) {
+            highlightClass = 'brightness-125 contrast-110 scale-100 z-30 shadow-[0_0_60px_rgba(255,255,255,0.4)] ring-4 sm:ring-8 ring-white/60';
+        } else {
+            highlightClass = 'brightness-[0.1] contrast-[0.5] scale-90 z-0'; 
+        }
+    } else {
+        highlightClass = isSpeaking
+          ? 'brightness-100 contrast-100 scale-105 z-20 shadow-2xl ring-2 sm:ring-4 ring-white/50'
+          : hasSpeaker
+            ? 'brightness-50 contrast-90 scale-95 z-10' // some other character is speaking
+            : 'brightness-[0.22] contrast-[0.80] saturate-[0.35] scale-95 z-10'; // plain narrator text mode: deeply dimmed
+    }
+
 
     return (
       <motion.div
         key={charConfig.key}
-        style={{ left }}
-        initial={{ opacity: 0, scale: 0.8, x: "-50%", y: topPx }}
-        animate={{ opacity: existsOnStage ? 1 : 0.6, scale: 1, x: "-50%", y: topPx }}
+        style={{ left: resolvedLeft }}
+        initial={{ opacity: 0, scale: 0.8, x: "-50%", y: resolvedTopPx }}
+        animate={{ opacity: targetOpacity, scale: 1, x: "-50%", y: resolvedTopPx }}
         exit={{ opacity: 0 }}
         transition={{ type: 'spring', stiffness: 90, damping: 16 }}
-        className={`absolute bottom-0 flex flex-col items-center pointer-events-none select-none transition-all duration-300 ${highlightClass}`}
+        className={`absolute bottom-0 flex flex-col items-center pointer-events-none select-none transition-all duration-500 ${highlightClass}`}
       >
         {/* Avatar frame */}
-        <div style={{ width: widthPx }} className="relative rounded-xl sm:rounded-2xl overflow-hidden border-2 sm:border-4 border-zinc-900 bg-zinc-800 shadow-xl aspect-[3/4]">
+        <div style={{ width: resolvedWidthPx }} className="relative rounded-xl sm:rounded-2xl overflow-hidden border-2 sm:border-4 border-zinc-900 bg-zinc-800 shadow-xl aspect-[3/4]">
           <img
             src={charConfig.avatarUrl}
             alt={charConfig.displayName}
             referrerPolicy="no-referrer"
             className="w-full h-full object-cover object-top"
           />
+          {activeSpotlightKey && isSpotlighted && (
+             <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent mix-blend-overlay" />
+          )}
         </div>
 
         {/* Label banner */}

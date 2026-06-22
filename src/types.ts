@@ -19,7 +19,7 @@ export interface ScenarioConfig {
   scenes: Record<string, string>; // sceneName -> backgroundUrl mapper. Default is '標準'
 }
 
-export type DialogueType = 'dialogue' | 'click-wait' | 'scene-change' | 'characters-change';
+export type DialogueType = 'dialogue' | 'click-wait' | 'scene-change' | 'characters-change' | 'spotlight' | 'spotlight-end';
 
 export interface DialogueItem {
   id: string;

@@ -12,8 +12,8 @@ import KnightUrl from '../assets/images/anime_knight_character_1781857508769.jpg
 import HeroUrl from '../assets/images/anime_hero_character_1781857522707.jpg';
 import DemonKingUrl from '../assets/images/anime_demon_king_character_1781857533496.jpg';
 import FantasyBgUrl from '../assets/images/anime_fantasy_road_background_1781857544323.jpg';
-import OlUrl from '../assets/images/anime_ol_character_1782087656402.jpg';
-import SagariUrl from '../assets/images/anime_sagari_character_v3_1782095883986.jpg';
+import OlUrl from '../assets/images/anime_yukari_longhair_casual_1782096845522.jpg';
+import SagariUrl from '../assets/images/anime_sagari_casual_restored_1782097004534.jpg';
 import CafeBgUrl from '../assets/images/anime_cafe_interior_background_1782089353718.jpg';
 import DvergUrl from '../assets/images/anime_warrior_dverg_1782089508987.jpg';
 import AlUrl from '../assets/images/anime_cat_fairy_al_1782089520532.jpg';
@@ -239,6 +239,41 @@ export const DEFAULT_BLOGS: BlogItem[] = [
 アル: それじゃあ、これで機能紹介は終わりだにゃ！みんな、ばいばーいにゃ！
 
 由香里、佐賀里、ドヴェルグ、アル: レッツ、シナリオメイキング！
+【おわり】`
+  },
+  {
+    id: "sample-4",
+    title: "機能説明：スポット機能（スポット）",
+    category: "サンプル",
+    description: "",
+    content: `【タイトル】
+会話機能の紹介：スポット機能編
+
+【異世界オーガニックカレー】
+【シーン】標準「スポット機能のテスト」
+【登場人物】由香里、佐賀里
+
+由香里: ここでは、新しい演出「スポット機能」について説明するわね。
+
+佐賀里: スポット機能？どんなふうになるの？
+
+由香里: 百聞は一見にしかずよ。さっそくやってみるわ。
+由香里: 【スポット】由香里
+
+【スポット】由香里
+由香里: こんな風に、指定したキャラクターが画面の中央に移動して、スポットライトが当たるのよ。
+
+【スポット終了】
+由香里: 「【スポット終了】」というタグを使うか……。
+
+【スポット】佐賀里
+佐賀里: うおっ！なんか私にスポットが当たった！
+
+由香里: そう、こんな風に、別のキャラクターが話し始めた場合でも、自動的にスポット演出は解除されて元に戻る仕様になっているわ。
+
+佐賀里: なるほど！ここぞという決め台詞や、キャラクターの単独アピールにぴったりな演出だね！
+
+由香里: そういうこと。色々な場面で活用してみてね。
 【おわり】`
   }
 ];

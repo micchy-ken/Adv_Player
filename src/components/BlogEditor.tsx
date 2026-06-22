@@ -81,6 +81,7 @@ export default function BlogEditor({
                   <option value="sample-1">・オフィス編（上司と部下）</option>
                   <option value="sample-2">・ファンタジー編（大人数）</option>
                   <option value="sample-3">・複数同時発話編（カレー）</option>
+                  <option value="sample-4">・スポット機能編（演出）</option>
                 </select>
                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-zinc-500">
                   <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
@@ -146,6 +147,12 @@ export default function BlogEditor({
                   <span className="bg-emerald-100 text-emerald-800 font-mono font-bold px-1 py-0.5 rounded text-[10.5px] select-all shrink-0">役名: 台詞</span>
                   <span className="leading-relaxed">
                     「名前: セリフ」のように記述します（例「部下: おはようございます」）。名前がない行はナレーションになります。
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="bg-emerald-100 text-emerald-800 font-mono font-bold px-1 py-0.5 rounded text-[10.5px] select-all shrink-0">【スポット】役名</span>
+                  <span className="leading-relaxed">
+                    指定したキャラを中央に移動させスポットを当てます。<code className="bg-zinc-200 px-0.5 font-bold">【スポット終了】</code> または他キャラが話すと解除されます。
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
