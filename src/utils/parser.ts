@@ -244,7 +244,6 @@ export function parseBlogContent(content: string): ParsedScenario[] {
           currentItems.push({
             id: `item-${currentScenarioId}-${itemIndex++}`,
             type: 'spotlight-end',
-            text: '（スポットライト終了）',
             index: itemIndex
           });
           continue;
@@ -266,7 +265,6 @@ export function parseBlogContent(content: string): ParsedScenario[] {
               id: `item-${currentScenarioId}-${itemIndex++}`,
               type: 'spotlight',
               speaker: spotlightName,
-              text: `（${spotlightName}にスポットライトを当てます）`,
               index: itemIndex
             });
             continue;

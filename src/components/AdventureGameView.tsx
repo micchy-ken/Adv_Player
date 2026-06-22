@@ -405,7 +405,7 @@ export default function AdventureGameView({
       return;
     }
 
-    if (currentStep.type === 'scene-change' || currentStep.type === 'characters-change') {
+    if (currentStep.type === 'scene-change' || currentStep.type === 'characters-change' || currentStep.type === 'spotlight' || currentStep.type === 'spotlight-end') {
       setTypedText('');
       setIsTyping(false);
       
@@ -584,6 +584,26 @@ export default function AdventureGameView({
     setBacklog([]);
     audioSynth.playIntro();
   };
+
+  const handleNextRef = useRef(handleNext);
+  useEffect(() => {
+    handleNextRef.current = handleNext;
+  }, [handleNext]);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      // Space key acts like click
+      if (e.key === ' ' || e.code === 'Space') {
+        const target = e.target as HTMLElement;
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'BUTTON') return;
+        
+        e.preventDefault();
+        handleNextRef.current();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
 
   const activeSpeakerKey = currentStep?.speaker;
   const resolvedSpeakerConfig = findCharacterConfig(activeSpeakerKey);

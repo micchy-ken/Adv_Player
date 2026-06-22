@@ -121,6 +121,20 @@ export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
         avatarUrl: AlUrl,
         color: "#ef4444", // red-500
         position: "right"
+      },
+      "謎の女性": {
+        key: "謎の女性",
+        displayName: "謎の女性",
+        avatarUrl: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=800&q=80",
+        color: "#c084fc", // purple-400
+        position: "left"
+      },
+      "謎の男": {
+        key: "謎の男",
+        displayName: "謎の男",
+        avatarUrl: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=800&q=80",
+        color: "#475569", // slate-600
+        position: "right"
       }
     },
     scenes: {
