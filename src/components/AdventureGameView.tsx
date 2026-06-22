@@ -528,6 +528,8 @@ export default function AdventureGameView({
 
   // Advance story
   const handleNext = () => {
+    if (!isStarted) return;
+
     const isSpeechType = currentStep && (currentStep.type === 'dialogue' || currentStep.type === 'spotlight' || currentStep.type === 'spotlight-end');
 
     if (isTyping && currentStep && isSpeechType) {
@@ -928,6 +930,19 @@ export default function AdventureGameView({
               className="w-full h-full object-cover select-none pointer-events-none absolute inset-0"
             />
           ) : null}
+        </AnimatePresence>
+
+        {/* Spotlight Dark Overlay */}
+        <AnimatePresence>
+          {activeSpotlightKey && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.8 }}
+              className="absolute inset-0 z-20 bg-black/85 pointer-events-none"
+            />
+          )}
         </AnimatePresence>
       </div>
 
