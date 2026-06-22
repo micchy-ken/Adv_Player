@@ -1070,10 +1070,24 @@ export default function AdventureGameView({
 
               <button
                 onClick={handleReset}
-                className="flex items-center gap-1 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-400 hover:text-white px-2.5 sm:px-3 py-1 rounded-full text-[9px] sm:text-[10px] transition-colors cursor-pointer"
+                className="flex items-center gap-1 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-400 hover:text-white px-2.5 sm:px-3 py-1 rounded-full text-[9px] sm:text-[10px] transition-colors cursor-pointer animate-fade"
               >
                 <RotateCcw className="w-2.5 h-2.5 sm:w-3 h-3" />
                 <span>最初から</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  if (document.fullscreenElement && document.exitFullscreen) {
+                    document.exitFullscreen().catch(() => {});
+                  }
+                  onClose();
+                }}
+                className="flex items-center gap-1 bg-rose-950/80 border border-rose-800/60 hover:bg-rose-900 text-rose-200 hover:text-white px-2.5 sm:px-3 py-1 rounded-full text-[9px] sm:text-[10px] transition-colors cursor-pointer font-bold"
+                title="演出再生を今すぐ終了して、元のブログ画面に戻ります"
+              >
+                <X className="w-2.5 h-2.5 sm:w-3 h-3" />
+                <span>今すぐ終了</span>
               </button>
             </div>
           </div>

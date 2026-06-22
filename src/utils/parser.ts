@@ -56,6 +56,7 @@ export function parseBlogContent(content: string): ParsedScenario[] {
 
       // Check if line is empty or whitespace-only (including full-width spaces and invisible padding)
       const isWhitespaceOnly = /^[ \t\s\u3000\u00A0\u200B-\u200D\uFEFF]*$/.test(trimmedLine);
+      const trimmedLineClean = trimmedLine.replace(/[\s\u3000\u200B-\u200D\uFEFF]/g, '');
 
       const isTitleTag = trimmedLine.match(/^\s*(?:\*\*\*|【|［|\[)\s*(?:タイトル|Title|title|TITLE)\s*(?:\*\*\*|】|］|\])/);
       if (isTitleTag) {
@@ -72,11 +73,13 @@ export function parseBlogContent(content: string): ParsedScenario[] {
       // Look for the bracket pattern at the start of the line
       const startTagMatch = trimmedLine.match(/^\s*(?:\*\*\*|【|［|\[)\s*([^\*\n【】［］\[\]]+?)\s*(?:\*\*\*|】|］|\])\s*(.*)$/);
       
-      const tagContentClean = startTagMatch ? startTagMatch[1].replace(/\s/g, '') : '';
-      const isCharactersStartTag = tagContentClean === '登場人物';
-      const isSceneStartTag = tagContentClean === 'シーン';
-      const isSpotlightStartTag = tagContentClean === 'スポット';
-      const isSpotlightEndTagGlobal = tagContentClean === 'スポット終了';
+      const tagContentClean = startTagMatch 
+        ? startTagMatch[1].replace(/[\s\u3000\u200B-\u200D\uFEFF]/g, '').trim() 
+        : '';
+      const isCharactersStartTag = tagContentClean === '登場人物' || tagContentClean.startsWith('登場人物') || tagContentClean.endsWith('登場人物');
+      const isSceneStartTag = tagContentClean === 'シーン' || tagContentClean.startsWith('シーン') || tagContentClean.endsWith('シーン');
+      const isSpotlightStartTag = tagContentClean === 'スポット' || (tagContentClean.startsWith('スポット') && !tagContentClean.includes('終了'));
+      const isSpotlightEndTagGlobal = tagContentClean === 'スポット終了' || tagContentClean.includes('スポット終了');
 
       if (startTagMatch && !isCharactersStartTag && !isSceneStartTag && !isSpotlightStartTag && !isSpotlightEndTagGlobal) {
         let tagContent = startTagMatch[1].trim();
@@ -94,7 +97,11 @@ export function parseBlogContent(content: string): ParsedScenario[] {
           continue;
         }
         
-        const isEndTag = lowerTag.startsWith("end") || tagContent === "おわり" || tagContent === "終了" || tagContent === "終了タグ";
+        const isEndTag = lowerTag.startsWith("end") || 
+                         tagContent === "おわり" || 
+                         tagContent === "終了" || 
+                         tagContent === "終了タグ" ||
+                         (tagContent.includes("終了") && !tagContent.includes("スポット") && !tagContent.includes("spotlight"));
         
         if (isEndTag) {
           // Reached end tag, save current scenario if exists
@@ -212,10 +219,10 @@ export function parseBlogContent(content: string): ParsedScenario[] {
         }
 
         // Check for 【スポット】 and 【スポット終了】
-        const spotlightMatch = trimmedLine.match(/^(?:【|\[|［)?スポット(?:】|\]|］)?[：:\s]\s*(.*)$/);
-        const isSpecialSpotlightTag = trimmedLine.startsWith('【スポット】') || trimmedLine.startsWith('[スポット]') || trimmedLine.startsWith('［スポット］');
+        const spotlightMatch = trimmedLine.match(/^(?:【|\[|［)?\s*スポット\s*(?:】|\]|］)?[：:\s]\s*(.*)$/);
+        const isSpecialSpotlightTag = trimmedLineClean.startsWith('【スポット】') || trimmedLineClean.startsWith('[スポット]') || trimmedLineClean.startsWith('［スポット］');
         
-        const isSpotlightEndTag = trimmedLine === '【スポット終了】' || trimmedLine === '[スポット終了]' || trimmedLine === '［スポット終了］';
+        const isSpotlightEndTag = trimmedLineClean.includes('スポット終了') || trimmedLineClean === '【スポット終了】' || trimmedLineClean === '[スポット終了]' || trimmedLineClean === '［スポット終了］';
 
         if (isSpotlightEndTag) {
           currentItems.push({
