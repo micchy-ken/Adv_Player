@@ -925,12 +925,12 @@ export default function AdventureGameView({
 
       {/* Background with zoom in effect */}
       <div className="absolute inset-0 z-0 bg-black">
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/60 z-10" />
-        <AnimatePresence mode="popLayout">
+        <div className={`absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/60 z-10 transition-opacity duration-1000 ${currentSceneState.solidColor ? 'opacity-0' : 'opacity-100'}`} />
+        <AnimatePresence>
           {currentSceneState.solidColor ? (
             <motion.div
               key={currentSceneState.solidColor}
-              className="w-full h-full absolute inset-0"
+              className="w-full h-full absolute inset-0 z-0"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -947,7 +947,7 @@ export default function AdventureGameView({
               animate={{ scale: 1, filter: 'blur(0px)', opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 1.5 }}
-              className="w-full h-full object-cover select-none pointer-events-none absolute inset-0"
+              className="w-full h-full object-cover select-none pointer-events-none absolute inset-0 z-0"
             />
           ) : null}
         </AnimatePresence>
