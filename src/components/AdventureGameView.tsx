@@ -850,7 +850,7 @@ export default function AdventureGameView({
     let highlightClass = '';
     if (activeSpotlightKey) {
         if (isSpotlighted) {
-            highlightClass = 'brightness-125 contrast-110 scale-100 z-30 shadow-[0_0_60px_rgba(255,255,255,0.4)] ring-4 sm:ring-8 ring-white/60';
+            highlightClass = 'brightness-100 contrast-100 scale-100 z-30';
         } else {
             highlightClass = 'brightness-[0.1] contrast-[0.5] scale-90 z-0'; 
         }
@@ -873,6 +873,11 @@ export default function AdventureGameView({
         transition={{ type: 'spring', stiffness: 90, damping: 16 }}
         className={`absolute bottom-0 flex flex-col items-center pointer-events-none select-none transition-all duration-500 ${highlightClass}`}
       >
+        {/* Spotlight background glow effect */}
+        {activeSpotlightKey && isSpotlighted && (
+            <div className="absolute top-[40%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200%] aspect-square bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.7)_0%,rgba(255,255,255,0.2)_40%,transparent_70%)] blur-xl -z-10 animate-pulse" />
+        )}
+
         {/* Avatar frame */}
         <div style={{ width: resolvedWidthPx }} className="relative rounded-xl sm:rounded-2xl overflow-hidden border-2 sm:border-4 border-zinc-900 bg-zinc-800 shadow-xl aspect-[3/4]">
           <img
@@ -881,9 +886,6 @@ export default function AdventureGameView({
             referrerPolicy="no-referrer"
             className="w-full h-full object-cover object-top"
           />
-          {activeSpotlightKey && isSpotlighted && (
-             <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent mix-blend-overlay" />
-          )}
         </div>
 
         {/* Label banner */}
