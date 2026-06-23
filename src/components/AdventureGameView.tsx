@@ -299,25 +299,28 @@ export default function AdventureGameView({
   const activeCharacters = useMemo(() => {
     let charKeys: string[] = [];
 
-    if (scenario.initialCharacters && scenario.initialCharacters.length > 0) {
-      charKeys = [...scenario.initialCharacters];
-    } else {
-      const scannedKeys = new Set<string>();
-      scenario.items.forEach(item => {
-        if (item.speaker) {
-          const cleanSpeaker = item.speaker.trim();
-          const configMatch = findCharacterConfig(cleanSpeaker);
-          if (configMatch) {
-            scannedKeys.add(configMatch.key);
-          } else {
-            scannedKeys.add(cleanSpeaker);
-          }
-        }
-      });
-      charKeys = Array.from(scannedKeys);
-    }
+    const scannedKeys = new Set<string>();
     
-    // Check up to currentIndex for 'characters-change' items
+    // First, add characters explicitly declared via initialCharacters, but ONLY if we are relying on that heavily...
+    // Actually, to prevent characters scheduled for later from appearing early, we ALWAYS scan up to currentIndex.
+    // If we want to hide characters until they speak, we should just dynamically accumulate them.
+    
+    // Only scan up to the current index, so characters "scheduled to appear" later don't show up early.
+    scenario.items.slice(0, currentIndex + 1).forEach(item => {
+      if (item.speaker) {
+        const cleanSpeaker = item.speaker.trim();
+        const configMatch = findCharacterConfig(cleanSpeaker);
+        if (configMatch) {
+          scannedKeys.add(configMatch.key);
+        } else {
+          scannedKeys.add(cleanSpeaker);
+        }
+      }
+    });
+
+    charKeys = Array.from(scannedKeys);
+
+    // Overrides: Check up to currentIndex for 'characters-change' items
     for (let i = 0; i <= currentIndex; i++) {
         const item = scenario.items[i];
         if (item && item.type === 'characters-change' && item.characters) {
@@ -863,11 +866,11 @@ export default function AdventureGameView({
         resolvedWidthPx = widthPx * 1.15;
     }
 
-    // existsOnStage: hide or grey out when click waits, but if spotlight is on, only show the spotlighted one
-    const existsOnStage = currentStep?.type === 'dialogue' || currentStep?.type === 'spotlight' || currentStep?.type === 'spotlight-end'; 
+    const representsSceneTransition = currentStep?.type === 'scene-change';
+    const existsOnStage = currentStep?.type === 'dialogue' || currentStep?.type === 'spotlight' || currentStep?.type === 'spotlight-end' || currentStep?.type === 'click-wait' || currentStep?.type === 'characters-change'; 
     const hasSpeaker = !!activeSpeakerKey;
 
-    let targetOpacity = existsOnStage ? 1 : 0.6;
+    let targetOpacity = representsSceneTransition ? 0 : (existsOnStage ? 1 : 0.6);
     if (activeSpotlightKey && !isSpotlighted) {
         targetOpacity = 0; // Hide others during spotlight
     }
@@ -905,22 +908,28 @@ export default function AdventureGameView({
         )}
 
         {/* Avatar frame */}
-        <div style={{ width: resolvedWidthPx }} className="relative rounded-xl sm:rounded-2xl overflow-hidden border-2 sm:border-4 border-zinc-900 bg-zinc-800 aspect-[3/4]">
-          <img
-            src={charConfig.avatarUrl}
-            alt={charConfig.displayName}
-            referrerPolicy="no-referrer"
-            className="w-full h-full object-cover object-top"
-          />
-        </div>
+        {charConfig.avatarUrl ? (
+          <div style={{ width: resolvedWidthPx }} className="relative rounded-xl sm:rounded-2xl overflow-hidden border-2 sm:border-4 border-zinc-900 bg-zinc-800 aspect-[3/4]">
+            <img
+              src={charConfig.avatarUrl}
+              alt={charConfig.displayName}
+              referrerPolicy="no-referrer"
+              className="w-full h-full object-cover object-top"
+            />
+          </div>
+        ) : (
+          <div style={{ width: resolvedWidthPx }} className="relative aspect-[3/4] pointer-events-none" />
+        )}
 
         {/* Label banner */}
-        <div
-          style={{ backgroundColor: charConfig.color, color: getTextColorForBackground(charConfig.color || '#3f3f46') }}
-          className="mt-1 px-1.5 sm:px-3 py-0.5 sm:py-1 rounded-md sm:rounded-lg font-bold text-[8px] min-[400px]:text-[10px] sm:text-xs tracking-wide shadow-md border border-white/20 whitespace-nowrap min-w-[50px] min-[400px]:min-w-[70px] text-center"
-        >
-          {charConfig.displayName}
-        </div>
+        {charConfig.displayName && charConfig.displayName.trim().length > 0 && (
+          <div
+            style={{ backgroundColor: charConfig.color, color: getTextColorForBackground(charConfig.color || '#3f3f46') }}
+            className="mt-1 px-1.5 sm:px-3 py-0.5 sm:py-1 rounded-md sm:rounded-lg font-bold text-[8px] min-[400px]:text-[10px] sm:text-xs tracking-wide shadow-md border border-white/20 whitespace-nowrap min-w-[50px] min-[400px]:min-w-[70px] text-center"
+          >
+            {charConfig.displayName}
+          </div>
+        )}
       </motion.div>
     );
   };
