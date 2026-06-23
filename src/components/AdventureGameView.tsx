@@ -369,50 +369,9 @@ export default function AdventureGameView({
     const isNarrator = !currentStep.speaker;
     const text = currentStep.text || '';
 
-    if (isNarrator && text.length > 0) {
-      // Splitting logic for Plain Text / Narrator (to respect User visual and newline constraints)
-      const segments: string[] = [];
-      const rawLines = text.split(/\r?\n/);
-      
-      rawLines.forEach(line => {
-        let chunk = line.trim();
-        if (!chunk) return;
-        
-        const maxSegmentLen = 42; // Perfect balance for standard message area
-        while (chunk.length > maxSegmentLen) {
-          let splitIdx = chunk.substring(0, maxSegmentLen).lastIndexOf('。');
-          if (splitIdx === -1) {
-            splitIdx = chunk.substring(0, maxSegmentLen).lastIndexOf('、');
-          }
-          if (splitIdx === -1) {
-            splitIdx = chunk.substring(0, maxSegmentLen).lastIndexOf('！');
-          }
-          if (splitIdx === -1) {
-            splitIdx = chunk.substring(0, maxSegmentLen).lastIndexOf('？');
-          }
-          
-          let splitPoint;
-          if (splitIdx !== -1 && splitIdx >= 12) {
-            splitPoint = splitIdx + 1; // Include the punctuation mark in the current segment
-          } else {
-            splitPoint = maxSegmentLen;
-          }
-          
-          segments.push(chunk.substring(0, splitPoint));
-          chunk = chunk.substring(splitPoint).trim();
-        }
-        if (chunk.length > 0) {
-          segments.push(chunk);
-        }
-      });
-
-      setCurrentSegments(segments.length > 0 ? segments : ['']);
-      setSegmentIndex(0);
-    } else {
-      // Speaker specified: keep as single segment to preserve dialogue role structures
-      setCurrentSegments([text]);
-      setSegmentIndex(0);
-    }
+    // No longer artificially splitting text. Let CSS handle natural wrapping and explicit newlines.
+    setCurrentSegments([text]);
+    setSegmentIndex(0);
   }, [currentIndex, currentStep]);
 
   // Preload asset images to ensure smooth transitions
@@ -1244,8 +1203,8 @@ export default function AdventureGameView({
 
           {/* Main Text Content */}
           <div 
-            style={{ lineBreak: 'strict', wordBreak: 'normal', overflowWrap: 'anywhere' }}
-            className="text-xs sm:text-sm md:text-base leading-relaxed font-semibold sm:font-bold tracking-wide mt-1.5 sm:mt-2"
+            style={{ overflowWrap: 'anywhere' }}
+            className="text-xs sm:text-sm md:text-base leading-relaxed font-semibold sm:font-bold tracking-wide mt-1.5 sm:mt-2 whitespace-pre-wrap"
           >
             {currentStep ? (
               currentStep.type === 'click-wait' ? (
