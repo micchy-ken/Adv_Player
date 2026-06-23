@@ -11,6 +11,7 @@ import { Play, RotateCcw, Volume2, VolumeX, X, ChevronRight, CornerDownLeft, Eye
 interface AdventureGameViewProps {
   scenario: ParsedScenario;
   config: ScenarioConfig;
+  allConfigs?: Record<string, ScenarioConfig>;
   onClose: () => void;
 }
 
@@ -163,22 +164,37 @@ export default function AdventureGameView({
   }, [scenario, currentIndex]);
 
   // Helper to find character config by speaker key or displayName
-  const findCharacterConfig = useCallback((speaker: string | undefined) => {
+  const findCharacterConfig = useCallback((speaker: string | undefined): CharacterConfig | null => {
     if (!speaker) return null;
-    const cleanSpeaker = speaker.trim();
+    let cleanSpeaker = speaker.trim();
+
+    // Check for optional cross-asset reference e.g., "（上司と部下）上司"
+    const assetMatch = cleanSpeaker.match(/^(?:[（\(](.*?)[）\)])?\s*(.*)$/);
+    let targetConfig = config;
+    let fallbackConfigs = props.allConfigs || {};
+    
+    if (assetMatch && assetMatch[1]) {
+      const assetInfo = assetMatch[1].trim();
+      const actualSpeaker = assetMatch[2].trim();
+      if (fallbackConfigs[assetInfo]) {
+        targetConfig = fallbackConfigs[assetInfo];
+        cleanSpeaker = actualSpeaker;
+      }
+    }
+
     // Exact key match
-    if (config.characters[cleanSpeaker]) {
-      return config.characters[cleanSpeaker];
+    if (targetConfig.characters[cleanSpeaker]) {
+      return targetConfig.characters[cleanSpeaker];
     }
     // Match by displayName
-    const foundByDisplayName = Object.values(config.characters).find(
+    const foundByDisplayName = Object.values(targetConfig.characters).find(
       c => c.displayName && (c.displayName.includes(cleanSpeaker) || cleanSpeaker.includes(c.displayName))
     );
     if (foundByDisplayName) return foundByDisplayName;
 
     // Fuzzy fallbacks for specific default scenarios (including full English translation support)
     const lowerSpeaker = cleanSpeaker.toLowerCase();
-    if (config.id === "上司と部下" || config.id.includes("上司") || config.id.includes("boss") || config.id.includes("subordinate")) {
+    if (targetConfig.id === "上司と部下" || targetConfig.id.includes("上司") || targetConfig.id.includes("boss") || targetConfig.id.includes("subordinate")) {
       if (
         lowerSpeaker.includes("上司") || 
         lowerSpeaker.includes("佐藤") || 
@@ -189,7 +205,7 @@ export default function AdventureGameView({
         lowerSpeaker.includes("manager") || 
         lowerSpeaker.includes("supervisor")
       ) {
-        return Object.values(config.characters).find(c => c.key === "上司" || c.key === "佐藤" || c.position === "left") || null;
+        return Object.values(targetConfig.characters).find(c => c.key === "上司" || c.key === "佐藤" || c.position === "left") || null;
       }
       if (
         lowerSpeaker.includes("部下") || 
@@ -202,10 +218,10 @@ export default function AdventureGameView({
         lowerSpeaker.includes("staff") || 
         lowerSpeaker.includes("junior")
       ) {
-        return Object.values(config.characters).find(c => c.key === "部下" || c.key === "鈴木" || c.position === "right") || null;
+        return Object.values(targetConfig.characters).find(c => c.key === "部下" || c.key === "鈴木" || c.position === "right") || null;
       }
     }
-    if (config.id === "ファンタジー遭遇" || config.id.includes("fantasy") || config.id.includes("encounter")) {
+    if (targetConfig.id === "ファンタジー遭遇" || targetConfig.id.includes("fantasy") || targetConfig.id.includes("encounter")) {
       if (
         lowerSpeaker.includes("勇者") || 
         lowerSpeaker.includes("アルス") || 
@@ -213,7 +229,7 @@ export default function AdventureGameView({
         lowerSpeaker.includes("arus") || 
         lowerSpeaker.includes("arthur")
       ) {
-        return Object.values(config.characters).find(c => c.key === "勇者" || c.position === "left") || null;
+        return Object.values(targetConfig.characters).find(c => c.key === "勇者" || c.position === "left") || null;
       }
       if (
         lowerSpeaker.includes("魔王") || 
@@ -223,16 +239,16 @@ export default function AdventureGameView({
         lowerSpeaker.includes("satan") || 
         lowerSpeaker.includes("devil")
       ) {
-        return Object.values(config.characters).find(c => c.key === "魔王" || c.position === "right") || null;
+        return Object.values(targetConfig.characters).find(c => c.key === "魔王" || c.position === "right") || null;
       }
     }
-    if (config.id === "幼馴染の図書室" || config.id.includes("childhood") || config.id.includes("friend") || config.id.includes("library")) {
+    if (targetConfig.id === "幼馴染の図書室" || targetConfig.id.includes("childhood") || targetConfig.id.includes("friend") || targetConfig.id.includes("library")) {
       if (
         lowerSpeaker.includes("葵") || 
         lowerSpeaker.includes("あおい") || 
         lowerSpeaker.includes("aoi")
       ) {
-        return Object.values(config.characters).find(c => c.key === "葵" || c.position === "left") || null;
+        return Object.values(targetConfig.characters).find(c => c.key === "葵" || c.position === "left") || null;
       }
       if (
         lowerSpeaker.includes("颯太") || 
@@ -240,18 +256,18 @@ export default function AdventureGameView({
         lowerSpeaker.includes("sota") || 
         lowerSpeaker.includes("souta")
       ) {
-        return Object.values(config.characters).find(c => c.key === "颯太" || c.position === "right") || null;
+        return Object.values(targetConfig.characters).find(c => c.key === "颯太" || c.position === "right") || null;
       }
     }
 
     // Default: find any character whose key matches or is close
-    const foundByKeyMatch = Object.values(config.characters).find(
+    const foundByKeyMatch = Object.values(targetConfig.characters).find(
       c => c.key.includes(cleanSpeaker) || cleanSpeaker.includes(c.key)
     );
     if (foundByKeyMatch) return foundByKeyMatch;
 
     return null;
-  }, [config]);
+  }, [config, props.allConfigs]);
 
   const activeCharacters = useMemo(() => {
     let charKeys: string[] = [];
@@ -606,7 +622,17 @@ export default function AdventureGameView({
   }, []);
 
   const activeSpeakerKey = currentStep?.speaker;
-  const resolvedSpeakerConfig = findCharacterConfig(activeSpeakerKey);
+  
+  const resolvedSpeakerConfig = useMemo(() => {
+    if (!activeSpeakerKey) return null;
+    const cleanKey = activeSpeakerKey.trim();
+    const matchFromActive = activeCharacters.find(
+      c => c.key === cleanKey || c.displayName === cleanKey || c.key.includes(cleanKey) || cleanKey.includes(c.key)
+    );
+    if (matchFromActive) return matchFromActive;
+    
+    return findCharacterConfig(activeSpeakerKey);
+  }, [activeSpeakerKey, activeCharacters, findCharacterConfig]);
 
   const activeSpotlightKey = useMemo(() => {
     let spotlight: string | undefined = undefined;
@@ -722,14 +748,28 @@ export default function AdventureGameView({
     for (let i = 0; i <= currentIndex; i++) {
         const item = scenario.items[i];
         if (item && item.type === 'scene-change' && item.sceneName) {
-          if (item.sceneName === '白') {
+           let targetSceneConfig = config;
+           let cleanSceneName = item.sceneName.trim();
+           const assetMatch = cleanSceneName.match(/^(?:[（\(](.*?)[）\)])?\s*(.*)$/);
+           
+           if (assetMatch && assetMatch[1]) {
+             const assetInfo = assetMatch[1].trim();
+             const actualScene = assetMatch[2].trim();
+             const fallbackConfigs = props.allConfigs || {};
+             if (fallbackConfigs[assetInfo]) {
+               targetSceneConfig = fallbackConfigs[assetInfo];
+               cleanSceneName = actualScene;
+             }
+           }
+
+          if (cleanSceneName === '白') {
             solidColor = '#ffffff';
             currentBg = '';
-          } else if (item.sceneName === '黒') {
+          } else if (cleanSceneName === '黒') {
             solidColor = '#000000';
             currentBg = '';
-          } else if (config.scenes && config.scenes[item.sceneName]) {
-            currentBg = config.scenes[item.sceneName];
+          } else if (targetSceneConfig.scenes && targetSceneConfig.scenes[cleanSceneName]) {
+            currentBg = targetSceneConfig.scenes[cleanSceneName];
             solidColor = undefined;
           }
           
@@ -753,7 +793,7 @@ export default function AdventureGameView({
     }
 
     return { bgUrl: currentBg, solidColor, title: currentTitle };
-  }, [currentIndex, scenario, config, currentStep]);
+  }, [currentIndex, scenario, config, currentStep, props.allConfigs]);
 
 
   // Render character entries dynamically on absolute coordinate positions

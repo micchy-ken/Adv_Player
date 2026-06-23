@@ -216,10 +216,21 @@ export function parseBlogContent(content: string): ParsedScenario[] {
             charNamesText = charMatch[1];
           }
           
-          const names = charNamesText
+          let globalAssetPrefix = "";
+          const sharedAssetMatch = charNamesText.match(/^[（\(](.*?)[）\)]\s*(.*)$/);
+          if (sharedAssetMatch && sharedAssetMatch[1]) {
+             globalAssetPrefix = `（${sharedAssetMatch[1]}）`;
+             charNamesText = sharedAssetMatch[2]; // Use the rest of the string for splitting
+          }
+          
+          let names = charNamesText
             .split(/[、,，・\.．\s\u3000]+/g)
             .map(n => n.trim())
             .filter(n => n.length > 0);
+
+          if (globalAssetPrefix) {
+            names = names.map(n => n.match(/^[（\(]/) ? n : `${globalAssetPrefix}${n}`);
+          }
           
           if (itemIndex === 0 && currentInitialCharacters.length === 0) {
             currentInitialCharacters = names.slice(0, 4);

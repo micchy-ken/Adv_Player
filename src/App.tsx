@@ -876,6 +876,7 @@ export default function App() {
           <AdventureGameView
             scenario={activePlayScenario}
             config={resolvedConfig}
+            allConfigs={DEFAULT_SCENARIOS}
             onClose={() => setActivePlayScenario(null)}
           />
         )}

@@ -27,6 +27,7 @@ export interface DialogueItem {
   speaker?: string; // character key
   text?: string;    // dialogue text
   sceneName?: string; // name of the scene (e.g., '山岳', '給湯室', '王宮', '白')
+  assetId?: string; // which scenario asset to use
   sceneTitle?: string; // title to display in center (e.g., '冒頭')
   characters?: string[]; // list of active characters
   index: number;    // order in story
