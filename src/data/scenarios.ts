@@ -26,6 +26,9 @@ import MysteriousWomanPortraitUrl from '../assets/images/mysterious_woman_portra
 import MysteriousWomanLightUrl from '../assets/images/mysterious_woman_light_white_1782171906086.jpg';
 import TavernCafeUpdatedUrl from '../assets/images/fantasy_tavern_cafe_1782171567215.jpg';
 import MountainPathUpdatedUrl from '../assets/images/fantasy_mountain_path_1782171580450.jpg';
+import OgreUrl from '../assets/images/fantasy_ogre_portrait_1782187122969.jpg';
+import FernandaUrl from '../assets/images/fernanda_revealed_1782187709313.jpg';
+import DianeUrl from '../assets/images/diane_long_white_hair_1782187724949.jpg';
 
 export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
   "上司と部下": {
@@ -147,6 +150,27 @@ export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
         avatarUrl: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=800&q=80",
         color: "#475569", // slate-600
         position: "right"
+      },
+      "オーガ": {
+        key: "オーガ",
+        displayName: "オーガ",
+        avatarUrl: OgreUrl,
+        color: "#166534", // green-800
+        position: "right"
+      },
+      "フェルナンダ": {
+        key: "フェルナンダ",
+        displayName: "フェルナンダ",
+        avatarUrl: FernandaUrl,
+        color: "#cbd5e1", // slate-300
+        position: "left"
+      },
+      "ディアーネ": {
+        key: "ディアーネ",
+        displayName: "ディアーネ",
+        avatarUrl: DianeUrl,
+        color: "#fecdd3", // rose-200
+        position: "left"
       }
     },
     scenes: {
@@ -305,6 +329,34 @@ export const DEFAULT_BLOGS: BlogItem[] = [
 佐賀里: なるほど！ここぞという決め台詞や、キャラクターの単独アピールにぴったりな演出だね！
 
 由香里: そういうこと。色々な場面で活用してみてね。
+【おわり】`
+  },
+  {
+    id: "sample-5",
+    title: "新キャラクター紹介（フェルナンダ・ディアーネ）",
+    category: "サンプル",
+    description: "",
+    content: `【タイトル】
+新キャラクター紹介
+
+【異世界オーガニックカレー】
+【シーン】カフェ
+【登場人物】フェルナンダ、ディアーネ、オーガ
+【スポット】フェルナンダ
+
+フェルナンダ: ……ようこそ。私の名前はフェルナンダ。フードの奥の素顔を、遂にお見せする時が来ました。
+
+【スポット】ディアーネ
+
+ディアーネ: はじめまして！わたし、ディアーネ！可愛いって言ってもらえて嬉しいな！これからもよろしくね！
+
+【スポット終了】
+
+オーガ: オレサマ、オーガ！カワイイコ、オオイ！オレモ、ナカマニ、イレテクレ！
+
+ディアーネ: わあっ、大きなオーガさんだ！一緒に遊ぼうよ！
+
+フェルナンダ: ふふふ……賑やかになりそうですね。
 【おわり】`
   }
 ];
