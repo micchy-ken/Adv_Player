@@ -368,7 +368,7 @@ export default function App() {
       }
 
       // B. Load from external Blog URL (if CORS permits or utilizing free proxy fallback)
-      let blogUrlParam = searchParams.get('url') || searchParams.get('blog_url');
+      let blogUrlParam = searchParams.get('url') || searchParams.get('blog_url') || searchParams.get('utm_source') || searchParams.get('ref') || searchParams.get('source');
       if (blogUrlParam) {
         const extractedUrl = blogUrlParam.match(/https?:\/\/[^\s]+/);
         if (extractedUrl) blogUrlParam = extractedUrl[0];
@@ -746,14 +746,25 @@ export default function App() {
               <div className="border border-zinc-200 rounded-xl p-5 bg-zinc-50 space-y-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2 bg-purple-100 text-purple-950 border border-purple-200 px-3 py-1 rounded-full text-[10px] font-bold uppercase">
-                    方式 C (魔法のリンク)
+                    方式 C (魔法のリンク・リファラー利用)
                   </div>
                   <span className="text-xs font-bold text-zinc-700">自動リファラー読み込み方式</span>
                 </div>
                 <p className="text-xs text-zinc-600 leading-relaxed">
-                  ブログ上のリンクに少し魔法をかけるだけです。
-                  <code>?auto=1</code> という短いパラメータをつけるだけで、Adv_Player は「どのブログから飛んできたのか？(Referrer)」を自動で検知し、その元のブログのURLから本文を取得してシナリオを再生します。
+                  通常は <code>?auto=1</code> というパラメータをつけるだけで、Adv_Player は「どのブログから飛んできたのか？(Referrer)」を自動で検知し、シナリオを再生します。
                 </p>
+
+                <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 space-y-2 mt-2">
+                  <span className="block text-[11px] font-bold text-yellow-800 mb-1">
+                    ⚠️ リファラーから生のURLが消去されてしまう場合
+                  </span>
+                  <p className="text-[11px] text-yellow-800/90 leading-relaxed">
+                    多くのブログでは、プライバシー保護の観点からリファラー（流入元URL）がドメインのみに丸められてしまいます。<br/>
+                    これを回避するには、ブログ記事内のリンクタグに <strong><code className="bg-yellow-100 px-1 py-0.5 rounded">referrerpolicy="unsafe-url"</code></strong> を追加してください。<br/>
+                    <code>&lt;a href=".../?auto=1" referrerpolicy="unsafe-url"&gt;ゲームを起動&lt;/a&gt;</code> <br/>
+                    また、<strong><code className="bg-yellow-100 px-1 py-0.5 rounded">?utm_source=ブログ記事URL</code></strong> や <strong><code className="bg-yellow-100 px-1 py-0.5 rounded">?ref=ブログ記事URL</code></strong> などのリンクパラメータを併用しても自動取得が可能です。CMSごとの固定URLタグ（<code>{'{Permalink}'}</code>など）を用いてURLを出力してください。
+                  </p>
+                </div>
 
                 <div className="bg-white border border-zinc-200 rounded-xl p-4 space-y-3">
                   <span className="block text-[10px] font-black uppercase text-zinc-400 mb-1">
@@ -850,7 +861,7 @@ export default function App() {
                 <p className="text-[10px] text-red-700/80 mt-2 leading-relaxed">
                   ※ はてなブログ等のリンクから飛んできた際、リファラーがトップページURL（例: <code>https://xxx.hatenablog.com/</code>）等に丸められていることがあります。<br/>
                   その場合「方式C」を利用すると、元の個別記事URLではなくブログのトップページHTMLが取得されてしまい、一番上の記事が自動再生されてしまいます。<br/>
-                  これを回避し、確実に個別記事を読み込ませるには、「方式D」の動的パラメータ自動付与方式をご利用ください。
+                  これを回避し、確実に個別記事を読み込ませるには、「方式C」の欄に記載した <code>referrerpolicy="unsafe-url"</code> の付与を利用するか、あるいは一番確実な「方式D」の動的パラメータ自動付与方式をご利用ください。
                 </p>
               </div>
 

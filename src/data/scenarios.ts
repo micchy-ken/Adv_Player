@@ -27,8 +27,8 @@ import MysteriousWomanLightUrl from '../assets/images/mysterious_woman_light_whi
 import TavernCafeUpdatedUrl from '../assets/images/fantasy_tavern_cafe_1782171567215.jpg';
 import MountainPathUpdatedUrl from '../assets/images/fantasy_mountain_path_1782171580450.jpg';
 import OgreUrl from '../assets/images/fantasy_ogre_portrait_1782187122969.jpg';
-import FernandaUrl from '../assets/images/fernanda_revealed_1782187709313.jpg';
-import DianeUrl from '../assets/images/diane_long_white_hair_1782187724949.jpg';
+import FernandaUrl from '../assets/images/fernanda_revealed_v2_1782194174570.jpg';
+import DianeUrl from '../assets/images/diane_younger_1782194161290.jpg';
 
 export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
   "上司と部下": {
