@@ -768,7 +768,7 @@ export default function App() {
 
                 <div className="bg-white border border-zinc-200 rounded-xl p-4 space-y-3">
                   <span className="block text-[10px] font-black uppercase text-zinc-400 mb-1">
-                    魔法のリンク (自分のブログからこのリンク先に飛ぶだけ)
+                    基本のリンク (これだけだとリファラーが丸められる事があります)
                   </span>
                   <div className="bg-zinc-50 p-2.5 rounded-lg border font-mono text-[11px] text-zinc-700 break-all flex items-center justify-between gap-4">
                     <span className="select-all flex-1 line-clamp-1">{currentAppURL}?auto=1</span>
@@ -776,6 +776,22 @@ export default function App() {
                       onClick={() => handleCopy(`${currentAppURL}?auto=1`)}
                       className="p-1.5 hover:bg-zinc-200 rounded text-zinc-500 transition-all shrink-0 cursor-pointer"
                       title="URLをコピー"
+                    >
+                      <Copy className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="bg-white border border-zinc-200 rounded-xl p-4 space-y-3 mt-3">
+                  <span className="block text-[10px] font-black uppercase text-zinc-400 mb-1">
+                    リファラー対策済みのHTMLリンクタグ (推奨)
+                  </span>
+                  <div className="bg-zinc-50 p-2.5 rounded-lg border font-mono text-[11px] text-zinc-700 break-all flex items-center justify-between gap-4">
+                    <span className="select-all flex-1">{`<a href="${currentAppURL}?auto=1" referrerpolicy="unsafe-url" target="_blank">プレイヤーを起動</a>`}</span>
+                    <button
+                      onClick={() => handleCopy(`<a href="${currentAppURL}?auto=1" referrerpolicy="unsafe-url" target="_blank">プレイヤーを起動</a>`)}
+                      className="p-1.5 hover:bg-zinc-200 rounded text-zinc-500 transition-all shrink-0 cursor-pointer"
+                      title="タグをコピー"
                     >
                       <Copy className="w-4 h-4" />
                     </button>

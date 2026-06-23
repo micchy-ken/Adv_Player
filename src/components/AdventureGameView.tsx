@@ -82,6 +82,32 @@ class RetroAudioSynth {
   }
 }
 
+// Helper to calculate text color based on background luminance
+function getRelativeLuminance(r: number, g: number, b: number) {
+  const rs = r / 255;
+  const gs = g / 255;
+  const bs = b / 255;
+  return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
+}
+
+function getTextColorForBackground(bgColor: string): string {
+  if (!bgColor) return '#ffffff';
+  let r = 0, g = 0, b = 0;
+  if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(bgColor)) {
+    let c = bgColor.substring(1).split('');
+    if (c.length === 3) {
+      c = [c[0], c[0], c[1], c[1], c[2], c[2]];
+    }
+    const hex = c.join('');
+    r = parseInt(hex.slice(0, 2), 16);
+    g = parseInt(hex.slice(2, 4), 16);
+    b = parseInt(hex.slice(4, 6), 16);
+  } else {
+    return '#ffffff';
+  }
+  return getRelativeLuminance(r, g, b) > 0.65 ? '#18181b' : '#ffffff';
+}
+
 export default function AdventureGameView({
   scenario,
   config,
@@ -890,8 +916,8 @@ export default function AdventureGameView({
 
         {/* Label banner */}
         <div
-          style={{ backgroundColor: charConfig.color }}
-          className="mt-1 px-1.5 sm:px-3 py-0.5 sm:py-1 rounded-md sm:rounded-lg text-white font-bold text-[8px] min-[400px]:text-[10px] sm:text-xs tracking-wide shadow-md border border-white/20 whitespace-nowrap min-w-[50px] min-[400px]:min-w-[70px] text-center"
+          style={{ backgroundColor: charConfig.color, color: getTextColorForBackground(charConfig.color || '#3f3f46') }}
+          className="mt-1 px-1.5 sm:px-3 py-0.5 sm:py-1 rounded-md sm:rounded-lg font-bold text-[8px] min-[400px]:text-[10px] sm:text-xs tracking-wide shadow-md border border-white/20 whitespace-nowrap min-w-[50px] min-[400px]:min-w-[70px] text-center"
         >
           {charConfig.displayName}
         </div>
@@ -1196,8 +1222,11 @@ export default function AdventureGameView({
                 initial={{ opacity: 0, y: 5 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -5 }}
-                style={{ backgroundColor: resolvedSpeakerConfig?.color || '#3f3f46' }}
-                className="absolute -top-3 left-4 sm:left-6 px-3 sm:px-4 py-0.5 sm:py-1 rounded-md sm:rounded-lg text-white font-black text-[10px] sm:text-xs tracking-wider shadow-md border border-white/20 whitespace-nowrap"
+                style={{ 
+                  backgroundColor: resolvedSpeakerConfig?.color || '#3f3f46',
+                  color: getTextColorForBackground(resolvedSpeakerConfig?.color || '#3f3f46')
+                }}
+                className="absolute -top-3 left-4 sm:left-6 px-3 sm:px-4 py-0.5 sm:py-1 rounded-md sm:rounded-lg font-black text-[10px] sm:text-xs tracking-wider shadow-md border border-white/20 whitespace-nowrap"
               >
                 {activeSpeakerKey}
               </motion.div>

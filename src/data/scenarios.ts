@@ -27,8 +27,10 @@ import MysteriousWomanLightUrl from '../assets/images/mysterious_woman_light_whi
 import TavernCafeUpdatedUrl from '../assets/images/fantasy_tavern_cafe_1782171567215.jpg';
 import MountainPathUpdatedUrl from '../assets/images/fantasy_mountain_path_1782171580450.jpg';
 import OgreUrl from '../assets/images/fantasy_ogre_portrait_1782187122969.jpg';
-import FernandaUrl from '../assets/images/fernanda_revealed_v2_1782194174570.jpg';
+import WeakOgreUrl from '../assets/images/weak_ogre_monster_1782197619974.jpg';
+import FernandaUrl from '../assets/images/fernanda_revealed_warm_1782196252219.jpg';
 import DianeUrl from '../assets/images/diane_younger_1782194161290.jpg';
+import FantasyPlainsUrl from '../assets/images/fantasy_plains_background_1782199323597.jpg';
 
 export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
   "上司と部下": {
@@ -158,6 +160,13 @@ export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
         color: "#166534", // green-800
         position: "right"
       },
+      "雑魚オーガ": {
+        key: "雑魚オーガ",
+        displayName: "雑魚オーガ",
+        avatarUrl: WeakOgreUrl,
+        color: "#a3e635", // lime-400
+        position: "right"
+      },
       "フェルナンダ": {
         key: "フェルナンダ",
         displayName: "フェルナンダ",
@@ -177,6 +186,7 @@ export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
       "標準": TavernCafeUpdatedUrl,
       "カフェ": TavernCafeUpdatedUrl,
       "山岳": MountainPathUpdatedUrl,
+      "平原": FantasyPlainsUrl,
       "城下町": "https://images.unsplash.com/photo-1467269204594-9661b134dd2b?auto=format&fit=crop&w=1200&q=80"
     }
   }
