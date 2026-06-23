@@ -850,16 +850,16 @@ export default function AdventureGameView({
     let highlightClass = '';
     if (activeSpotlightKey) {
         if (isSpotlighted) {
-            highlightClass = 'brightness-100 contrast-100 scale-100 z-30';
+            highlightClass = 'brightness-100 contrast-100 scale-100 z-30 shadow-[0_0_80px_rgba(255,255,255,0.4)] ring-4 sm:ring-8 ring-white/50 rounded-xl sm:rounded-2xl';
         } else {
             highlightClass = 'brightness-[0.1] contrast-[0.5] scale-90 z-0'; 
         }
     } else {
         highlightClass = isSpeaking
-          ? 'brightness-100 contrast-100 scale-105 z-20 shadow-2xl ring-2 sm:ring-4 ring-white/50'
+          ? 'brightness-100 contrast-100 scale-105 z-20 shadow-2xl ring-2 sm:ring-4 ring-white/50 rounded-xl sm:rounded-2xl'
           : hasSpeaker
-            ? 'brightness-50 contrast-90 scale-95 z-10' // some other character is speaking
-            : 'brightness-[0.22] contrast-[0.80] saturate-[0.35] scale-95 z-10'; // plain narrator text mode: deeply dimmed
+            ? 'brightness-50 contrast-90 scale-95 z-10 rounded-xl sm:rounded-2xl' // some other character is speaking
+            : 'brightness-[0.22] contrast-[0.80] saturate-[0.35] scale-95 z-10 rounded-xl sm:rounded-2xl'; // plain narrator text mode: deeply dimmed
     }
 
 
@@ -875,11 +875,11 @@ export default function AdventureGameView({
       >
         {/* Spotlight background glow effect */}
         {activeSpotlightKey && isSpotlighted && (
-            <div className="absolute top-[40%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200%] aspect-square bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.7)_0%,rgba(255,255,255,0.2)_40%,transparent_70%)] blur-xl -z-10 animate-pulse" />
+            <div className="absolute top-[40%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350%] aspect-square bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.7)_0%,rgba(255,255,255,0.3)_35%,transparent_70%)] blur-2xl -z-10 animate-pulse" />
         )}
 
         {/* Avatar frame */}
-        <div style={{ width: resolvedWidthPx }} className="relative rounded-xl sm:rounded-2xl overflow-hidden border-2 sm:border-4 border-zinc-900 bg-zinc-800 shadow-xl aspect-[3/4]">
+        <div style={{ width: resolvedWidthPx }} className="relative rounded-xl sm:rounded-2xl overflow-hidden border-2 sm:border-4 border-zinc-900 bg-zinc-800 aspect-[3/4]">
           <img
             src={charConfig.avatarUrl}
             alt={charConfig.displayName}
