@@ -85,6 +85,7 @@ class RetroAudioSynth {
 export default function AdventureGameView({
   scenario,
   config,
+  allConfigs = {},
   onClose
 }: AdventureGameViewProps) {
   const [isStarted, setIsStarted] = useState(false);
@@ -171,7 +172,7 @@ export default function AdventureGameView({
     // Check for optional cross-asset reference e.g., "（上司と部下）上司"
     const assetMatch = cleanSpeaker.match(/^(?:[（\(](.*?)[）\)])?\s*(.*)$/);
     let targetConfig = config;
-    let fallbackConfigs = props.allConfigs || {};
+    let fallbackConfigs = allConfigs || {};
     
     if (assetMatch && assetMatch[1]) {
       const assetInfo = assetMatch[1].trim();
@@ -267,7 +268,7 @@ export default function AdventureGameView({
     if (foundByKeyMatch) return foundByKeyMatch;
 
     return null;
-  }, [config, props.allConfigs]);
+  }, [config, allConfigs]);
 
   const activeCharacters = useMemo(() => {
     let charKeys: string[] = [];
@@ -755,7 +756,7 @@ export default function AdventureGameView({
            if (assetMatch && assetMatch[1]) {
              const assetInfo = assetMatch[1].trim();
              const actualScene = assetMatch[2].trim();
-             const fallbackConfigs = props.allConfigs || {};
+             const fallbackConfigs = allConfigs || {};
              if (fallbackConfigs[assetInfo]) {
                targetSceneConfig = fallbackConfigs[assetInfo];
                cleanSceneName = actualScene;
@@ -793,7 +794,7 @@ export default function AdventureGameView({
     }
 
     return { bgUrl: currentBg, solidColor, title: currentTitle };
-  }, [currentIndex, scenario, config, currentStep, props.allConfigs]);
+  }, [currentIndex, scenario, config, currentStep, allConfigs]);
 
 
   // Render character entries dynamically on absolute coordinate positions
