@@ -351,13 +351,24 @@ export default function AdventureGameView({
         
         const maxSegmentLen = 42; // Perfect balance for standard message area
         while (chunk.length > maxSegmentLen) {
-          let splitPoint = chunk.substring(0, maxSegmentLen).lastIndexOf('。');
-          if (splitPoint === -1) {
-            splitPoint = chunk.substring(0, maxSegmentLen).lastIndexOf('、');
+          let splitIdx = chunk.substring(0, maxSegmentLen).lastIndexOf('。');
+          if (splitIdx === -1) {
+            splitIdx = chunk.substring(0, maxSegmentLen).lastIndexOf('、');
           }
-          if (splitPoint === -1 || splitPoint < 12) {
+          if (splitIdx === -1) {
+            splitIdx = chunk.substring(0, maxSegmentLen).lastIndexOf('！');
+          }
+          if (splitIdx === -1) {
+            splitIdx = chunk.substring(0, maxSegmentLen).lastIndexOf('？');
+          }
+          
+          let splitPoint;
+          if (splitIdx !== -1 && splitIdx >= 12) {
+            splitPoint = splitIdx + 1; // Include the punctuation mark in the current segment
+          } else {
             splitPoint = maxSegmentLen;
           }
+          
           segments.push(chunk.substring(0, splitPoint));
           chunk = chunk.substring(splitPoint).trim();
         }
@@ -1192,7 +1203,10 @@ export default function AdventureGameView({
           </AnimatePresence>
 
           {/* Main Text Content */}
-          <div className="text-xs sm:text-sm md:text-base leading-relaxed font-semibold sm:font-bold tracking-wide mt-1.5 sm:mt-2">
+          <div 
+            style={{ lineBreak: 'strict', wordBreak: 'normal', overflowWrap: 'anywhere' }}
+            className="text-xs sm:text-sm md:text-base leading-relaxed font-semibold sm:font-bold tracking-wide mt-1.5 sm:mt-2"
+          >
             {currentStep ? (
               currentStep.type === 'click-wait' ? (
                 <span className="text-yellow-400 font-mono italic animate-pulse text-[11px] sm:text-sm">

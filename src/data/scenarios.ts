@@ -22,6 +22,11 @@ import AlUrl from '../assets/images/anime_cat_fairy_al_1782089520532.jpg';
 import FantasyTavernCafeUrl from '../assets/images/fantasy_tavern_cafe_1782112654209.jpg';
 import RuggedMountainPathUrl from '../assets/images/rugged_mountain_path_1782112671288.jpg';
 
+import MysteriousWomanPortraitUrl from '../assets/images/mysterious_woman_portrait_1782171595337.jpg';
+import MysteriousWomanLightUrl from '../assets/images/mysterious_woman_light_white_1782171906086.jpg';
+import TavernCafeUpdatedUrl from '../assets/images/fantasy_tavern_cafe_1782171567215.jpg';
+import MountainPathUpdatedUrl from '../assets/images/fantasy_mountain_path_1782171580450.jpg';
+
 export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
   "上司と部下": {
     id: "上司と部下",
@@ -125,14 +130,14 @@ export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
       "魔法使い": {
         key: "魔法使い",
         displayName: "魔法使い",
-        avatarUrl: "/src/assets/images/mysterious_woman_portrait_1782171595337.jpg",
+        avatarUrl: MysteriousWomanPortraitUrl,
         color: "#c084fc", // purple-400
         position: "left"
       },
       "謎の女性": {
         key: "謎の女性",
         displayName: "謎の女性",
-        avatarUrl: "/src/assets/images/mysterious_woman_light_white_1782171906086.jpg",
+        avatarUrl: MysteriousWomanLightUrl,
         color: "#f8fafc", // slate-50
         position: "left"
       },
@@ -145,9 +150,9 @@ export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
       }
     },
     scenes: {
-      "標準": "/src/assets/images/fantasy_tavern_cafe_1782171567215.jpg",
-      "カフェ": "/src/assets/images/fantasy_tavern_cafe_1782171567215.jpg",
-      "山岳": "/src/assets/images/fantasy_mountain_path_1782171580450.jpg",
+      "標準": TavernCafeUpdatedUrl,
+      "カフェ": TavernCafeUpdatedUrl,
+      "山岳": MountainPathUpdatedUrl,
       "城下町": "https://images.unsplash.com/photo-1467269204594-9661b134dd2b?auto=format&fit=crop&w=1200&q=80"
     }
   }
