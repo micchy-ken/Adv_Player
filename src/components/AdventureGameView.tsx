@@ -678,6 +678,7 @@ export default function AdventureGameView({
     const isMobile = windowSize.width < 640;
 
     let widthPx = 256; // default max width
+    const alignY = total <= 2 ? 'center' : 'bottom';
 
     if (isLandscape && !isMobile) {
       if (total === 1) { leftPercent = 50; widthPx = 300; }
@@ -785,7 +786,8 @@ export default function AdventureGameView({
     return {
       left: `${leftPercent}%`,
       topPx,
-      widthPx
+      widthPx,
+      alignY
     };
   };
 
@@ -863,16 +865,18 @@ export default function AdventureGameView({
         isSpotlighted = spotlightNames.some(name => name.includes(charConfig.key) || name.includes(charConfig.displayName));
     }
 
-    const { left, topPx, widthPx } = getCharStyle(index, total);
+    const { left, topPx, widthPx, alignY } = getCharStyle(index, total);
 
     let resolvedLeft = left;
     let resolvedTopPx = topPx;
     let resolvedWidthPx = widthPx;
+    let resolvedAlignY = alignY;
 
     if (activeSpotlightKey && isSpotlighted) {
         resolvedLeft = '50%';
         resolvedTopPx = typeof topPx === 'string' && topPx.includes('%') ? `calc(${topPx} + 5%)` : -10;
         resolvedWidthPx = widthPx * 1.15;
+        resolvedAlignY = 'center';
     }
 
     const representsSceneTransition = currentStep?.type === 'scene-change';
@@ -904,12 +908,16 @@ export default function AdventureGameView({
     return (
       <motion.div
         key={charConfig.key}
-        style={{ left: resolvedLeft }}
-        initial={{ opacity: 0, scale: 0.8, x: "-50%", y: resolvedTopPx }}
-        animate={{ opacity: targetOpacity, scale: 1, x: "-50%", y: resolvedTopPx }}
+        style={{ 
+          left: resolvedLeft,
+          top: resolvedAlignY === 'center' ? `calc(50% + ${typeof resolvedTopPx === 'number' ? `${resolvedTopPx}px` : resolvedTopPx})` : 'auto',
+          bottom: resolvedAlignY === 'center' ? 'auto' : '0'
+        }}
+        initial={{ opacity: 0, scale: 0.8, x: "-50%", y: resolvedAlignY === 'center' ? "-45%" : resolvedTopPx }}
+        animate={{ opacity: targetOpacity, scale: 1, x: "-50%", y: resolvedAlignY === 'center' ? "-50%" : resolvedTopPx }}
         exit={{ opacity: 0 }}
         transition={{ type: 'spring', stiffness: 90, damping: 16 }}
-        className={`absolute bottom-0 flex flex-col items-center pointer-events-none select-none transition-all duration-500 ${highlightClass}`}
+        className={`absolute flex flex-col items-center pointer-events-none select-none transition-all duration-500 ${highlightClass}`}
       >
         {/* Spotlight background glow effect */}
         {activeSpotlightKey && isSpotlighted && (
