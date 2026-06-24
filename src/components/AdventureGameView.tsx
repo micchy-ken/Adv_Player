@@ -672,38 +672,38 @@ export default function AdventureGameView({
   // Calculate dynamic responsive positions (proportional & overlap preventer)
   const getCharStyle = (index: number, total: number) => {
     let leftPercent = 50;
-    let topPx: number | string = -20; // slightly up to avoid footer overlap
+    let topPx: number | string = 0;
     
     const isLandscape = windowSize.width > windowSize.height;
     const isMobile = windowSize.width < 640;
 
-    let widthPx = 224; // default max width
+    let widthPx = 256; // default max width
 
     if (isLandscape && !isMobile) {
-      if (total === 1) { leftPercent = 50; widthPx = 280; }
-      else if (total === 2) { leftPercent = index === 0 ? 30 : 70; widthPx = 280; }
+      if (total === 1) { leftPercent = 50; widthPx = 300; }
+      else if (total === 2) { leftPercent = index === 0 ? 30 : 70; widthPx = 300; }
       else if (total === 3 || total === 4) {
         leftPercent = 15 + index * (70 / (total - 1));
-        widthPx = 250;
+        widthPx = 270;
       } else {
         leftPercent = 12 + index * 25.3;
-        widthPx = 200;
+        widthPx = 220;
       }
     } else {
       const screenRatio = windowSize.height / windowSize.width;
-      if (total === 1) { leftPercent = 50; topPx = "-10%"; widthPx = windowSize.width * 0.65; }
+      if (total === 1) { leftPercent = 50; topPx = "-10%"; widthPx = windowSize.width * 0.70; }
       else if (total === 2) {
         leftPercent = index === 0 ? 25 : 75;
         const stagger = Math.min(screenRatio * 40, 60); 
         topPx = index === 0 ? `-${stagger}%` : "-5%";
-        widthPx = windowSize.width * 0.50;
+        widthPx = windowSize.width * 0.55;
       } else {
         const isLeft = index % 2 === 0;
         const isTop = index < 2;
         leftPercent = isLeft ? 24 : 76;
         const stagger = Math.min(Math.max(screenRatio * 45, 20), 85);
         topPx = isTop ? `-${stagger}%` : "0%";
-        widthPx = windowSize.width * 0.48;
+        widthPx = windowSize.width * 0.52;
       }
     }
 
@@ -1122,7 +1122,6 @@ export default function AdventureGameView({
              </div>
           )}
         </main>
-      </div>
 
       {/* Bottom segment for dialog box (always at bottom) */}
       <footer className="relative z-20 shrink-0 flex flex-col justify-end pt-3 pb-3 sm:pt-5 sm:pb-6 px-3 sm:px-6 md:px-8 pointer-events-none">
@@ -1253,6 +1252,7 @@ export default function AdventureGameView({
         </div>
       </div>
     </footer>
+      </div>
 
       {/* Backlog Side Panel Modal component */}
       <AnimatePresence>
