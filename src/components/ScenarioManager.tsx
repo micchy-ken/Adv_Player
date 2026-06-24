@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react';
 import { ScenarioConfig, CharacterConfig } from '../types';
-import { Sliders, User, Image, Palette, Download, HelpCircle } from 'lucide-react';
+import { Sliders, User, Image, Palette, Download, HelpCircle, Package, X } from 'lucide-react';
 
 interface ScenarioManagerProps {
   scenarios: Record<string, ScenarioConfig>;
@@ -13,6 +13,7 @@ interface ScenarioManagerProps {
 
 export default function ScenarioManager({ scenarios }: ScenarioManagerProps) {
   const [selectedId, setSelectedId] = useState<string>(Object.keys(scenarios)[0] || '');
+  const [expandedImage, setExpandedImage] = useState<string | null>(null);
   const activeScenario = scenarios[selectedId];
 
   // Export current scenarios as JSON configuration file
@@ -124,7 +125,8 @@ export default function ScenarioManager({ scenarios }: ScenarioManagerProps) {
                             src={sceneUrl}
                             alt={`Scene ${sceneName}`}
                             referrerPolicy="no-referrer"
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                            onClick={() => setExpandedImage(sceneUrl)}
                           />
                         </div>
                         <div className="flex-1 space-y-1">
@@ -173,7 +175,8 @@ export default function ScenarioManager({ scenarios }: ScenarioManagerProps) {
                             src={char.avatarUrl}
                             alt={char.displayName}
                             referrerPolicy="no-referrer"
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                            onClick={() => setExpandedImage(char.avatarUrl)}
                           />
                         </div>
                         <div className="flex-1 space-y-1">
@@ -229,6 +232,66 @@ export default function ScenarioManager({ scenarios }: ScenarioManagerProps) {
               )}
             </div>
 
+            {/* Items list config card boards */}
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xs font-bold text-zinc-900 flex items-center gap-1.5">
+                  <Package className="w-4 h-4 text-purple-600" />
+                  アイテムの設定
+                </h3>
+              </div>
+
+              {!activeScenario.items || Object.keys(activeScenario.items).length === 0 ? (
+                <div className="text-center py-12 border-2 border-dashed border-zinc-200 rounded-xl text-zinc-400 text-xs">
+                  アイテムが登録されていません。
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {Object.entries(activeScenario.items).map(([key, item]: [string, any]) => (
+                    <div key={key} className="border border-zinc-200 rounded-xl p-4 flex flex-col gap-3 bg-zinc-50/50 transition-all relative">
+                      
+                      <div className="flex items-start gap-3">
+                        <div className="w-16 h-16 rounded-xl border border-zinc-200 overflow-hidden bg-white shrink-0 shadow">
+                          <img
+                            src={item.imageUrl}
+                            alt={item.name}
+                            referrerPolicy="no-referrer"
+                            className="w-full h-full object-contain cursor-pointer hover:opacity-80 transition-opacity p-1"
+                            onClick={() => setExpandedImage(item.imageUrl)}
+                          />
+                        </div>
+                        <div className="flex-1 space-y-1">
+                          <div className="text-[10px] font-mono text-zinc-400">
+                            ブログ紐付け名: <span className="text-zinc-700 font-bold font-sans bg-zinc-100 px-1 py-0.5 rounded">&#123;{item.key}&#125;</span>
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-semibold text-zinc-500">ゲーム内表示名</label>
+                            <input
+                              type="text"
+                              value={item.name}
+                              readOnly
+                              className="w-full text-xs px-2 py-1 rounded border border-zinc-200 bg-zinc-100 text-zinc-500 cursor-not-allowed"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Image custom URL */}
+                      <div className="pt-2 border-t border-zinc-200/50">
+                        <label className="block text-[9px] font-bold text-zinc-500 mb-0.5">画像URL</label>
+                        <input
+                          type="text"
+                          value={item.imageUrl}
+                          readOnly
+                          className="w-full text-[10px] px-2 py-0.5 rounded border border-zinc-200 bg-zinc-100 text-zinc-400 font-mono cursor-not-allowed"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* Hint Box */}
             <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-4 flex gap-2 text-xs text-zinc-600 items-start">
               <HelpCircle className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
@@ -254,6 +317,28 @@ export default function ScenarioManager({ scenarios }: ScenarioManagerProps) {
           </div>
         )}
       </div>
+      {/* Expanded Image Modal */}
+      {expandedImage && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm cursor-zoom-out"
+          onClick={() => setExpandedImage(null)}
+        >
+          <div className="relative max-w-4xl w-full h-full flex items-center justify-center">
+            <button 
+              className="absolute top-4 right-4 text-white bg-black/50 p-2 rounded-full hover:bg-black/80 transition-colors"
+              onClick={() => setExpandedImage(null)}
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <img 
+              src={expandedImage} 
+              alt="Expanded view" 
+              className="max-w-full max-h-full object-contain drop-shadow-2xl rounded"
+              referrerPolicy="no-referrer"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

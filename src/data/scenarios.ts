@@ -178,16 +178,16 @@ export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
         color: "#a3e635", // lime-400
         position: "right"
       },
-      "フェルナンダ": {
-        key: "フェルナンダ",
-        displayName: "フェルナンダ",
+      "マーリア": {
+        key: "マーリア",
+        displayName: "マーリア",
         avatarUrl: FernandaUrl,
         color: "#cbd5e1", // slate-300
         position: "left"
       },
-      "ディアーネ": {
-        key: "ディアーネ",
-        displayName: "ディアーネ",
+      "フェルナンダ": {
+        key: "フェルナンダ",
+        displayName: "フェルナンダ",
         avatarUrl: DianeUrl,
         color: "#fecdd3", // rose-200
         position: "left"
@@ -202,6 +202,38 @@ export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
       "都会の雑踏": AnimeCityCrowdBgUrl,
       "森の中": AnimeMedievalForestBgUrl,
       "洞窟": AnimeCaveInteriorBgUrl
+    },
+    items: {
+      "大剣": {
+        key: "大剣",
+        name: "大剣",
+        imageUrl: "https://images.unsplash.com/photo-1595590424283-b8f17842773f?auto=format&fit=crop&w=800&q=80"
+      }
+    }
+  },
+  "汎用": {
+    id: "汎用",
+    name: "汎用アセット",
+    themeColor: "slate",
+    characters: {
+      "男性": {
+        key: "男性",
+        displayName: "男性",
+        avatarUrl: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23333333"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>',
+        color: "#475569", // slate-600
+        position: "left"
+      },
+      "女性": {
+        key: "女性",
+        displayName: "女性",
+        avatarUrl: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23333333"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>', // A generic placeholder since simple silhouette is requested.
+        color: "#f43f5e", // rose-500
+        position: "right"
+      }
+    },
+    scenes: {
+      "標準": "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=80",
+      "地平線": "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=80"
     }
   },
   "カムとムニのチキュウジン観察": {
@@ -389,7 +421,7 @@ export const DEFAULT_BLOGS: BlogItem[] = [
   },
   {
     id: "sample-5",
-    title: "新キャラクター紹介（フェルナンダ・ディアーネ）",
+    title: "新キャラクター紹介（マーリア・フェルナンダ）",
     category: "サンプル",
     description: "",
     content: `【タイトル】
@@ -397,22 +429,22 @@ export const DEFAULT_BLOGS: BlogItem[] = [
 
 【異世界オーガニックカレー】
 【シーン】カフェ
-【登場人物】フェルナンダ、ディアーネ、オーガ
+【登場人物】マーリア、フェルナンダ、オーガ
+【スポット】マーリア
+
+マーリア: ……ようこそ。私の名前はマーリア。フードの奥の素顔を、遂にお見せする時が来ました。
+
 【スポット】フェルナンダ
 
-フェルナンダ: ……ようこそ。私の名前はフェルナンダ。フードの奥の素顔を、遂にお見せする時が来ました。
-
-【スポット】ディアーネ
-
-ディアーネ: はじめまして！わたし、ディアーネ！可愛いって言ってもらえて嬉しいな！これからもよろしくね！
+フェルナンダ: はじめまして！わたし、フェルナンダ！可愛いって言ってもらえて嬉しいな！これからもよろしくね！
 
 【スポット終了】
 
 オーガ: オレサマ、オーガ！カワイイコ、オオイ！オレモ、ナカマニ、イレテクレ！
 
-ディアーネ: わあっ、大きなオーガさんだ！一緒に遊ぼうよ！
+フェルナンダ: わあっ、大きなオーガさんだ！一緒に遊ぼうよ！
 
-フェルナンダ: ふふふ……賑やかになりそうですね。
+マーリア: ふふふ……賑やかになりそうですね。
 【おわり】`
   },
   {
@@ -432,6 +464,41 @@ export const DEFAULT_BLOGS: BlogItem[] = [
 ムニ: ほんとだ！あれは「スマフォ」っていうらしいよ。
 
 カムとムニ: チキュウジンって不思議だね〜！
+【おわり】`
+  },
+  {
+    id: "sample-7",
+    title: "機能説明：アイテムの表示と汎用アセット",
+    category: "サンプル",
+    description: "",
+    content: `【タイトル】
+アイテム表示機能の紹介
+
+【異世界オーガニックカレー】
+【シーン】カフェ
+【登場人物】由香里、佐賀里
+
+由香里: さて、新しい機能「アイテム」について説明するわ。
+
+【アイテム】大剣
+
+この「【アイテム】アイテム名」タグを使うと、画面の中央にアイテムを表示することができるの。
+このように、説明文（話し手がいないテキスト）が続いている間は、アイテムは表示され続けるわ。
+
+佐賀里: うおっ！いきなり凄い剣が出てきた！
+
+由香里: そう、誰かが話し始めると、このようにアイテムは自動的に消える仕様になっているの。
+
+佐賀里: なるほど、アイテムを見せながらの解説にぴったりだね。
+
+【汎用】
+【シーン】地平線
+【登場人物】男性、女性
+
+次に、汎用アセットについて。
+シナリオ「汎用」を指定すると、このように汎用的な背景やキャラクターを使えるわ。
+細かい指定なしで、単純なシルエットを使いたいときに便利ね。
+
 【おわり】`
   }
 ];

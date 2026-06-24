@@ -11,15 +11,22 @@ export interface CharacterConfig {
   position: 'left' | 'right' | 'center';
 }
 
+export interface ItemConfig {
+  key: string;
+  name: string;
+  imageUrl: string;
+}
+
 export interface ScenarioConfig {
   id: string; // matches the ***tag***, e.g. "上司と部下"
   name: string; // human readable name
   themeColor: string; // e.g. "theme-blue"
   characters: Record<string, CharacterConfig>;
   scenes: Record<string, string>; // sceneName -> backgroundUrl mapper. Default is '標準'
+  items?: Record<string, ItemConfig>; // itemKey -> ItemConfig
 }
 
-export type DialogueType = 'dialogue' | 'click-wait' | 'scene-change' | 'characters-change' | 'spotlight' | 'spotlight-end';
+export type DialogueType = 'dialogue' | 'click-wait' | 'scene-change' | 'characters-change' | 'spotlight' | 'spotlight-end' | 'show-item';
 
 export interface DialogueItem {
   id: string;
@@ -30,6 +37,7 @@ export interface DialogueItem {
   assetId?: string; // which scenario asset to use
   sceneTitle?: string; // title to display in center (e.g., '冒頭')
   characters?: string[]; // list of active characters
+  itemName?: string; // name of the item to display
   index: number;    // order in story
 }
 

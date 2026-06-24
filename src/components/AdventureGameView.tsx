@@ -293,6 +293,18 @@ export default function AdventureGameView({
     );
     if (foundByKeyMatch) return foundByKeyMatch;
 
+    // Fallback to 汎用 (General) characters if available
+    const genericConfig = allConfigs?.["汎用"];
+    if (genericConfig) {
+      if (genericConfig.characters[cleanSpeaker]) {
+        return genericConfig.characters[cleanSpeaker];
+      }
+      const genericMatch = Object.values(genericConfig.characters).find(
+        c => c.key.includes(cleanSpeaker) || cleanSpeaker.includes(c.key) || (c.displayName && (c.displayName.includes(cleanSpeaker) || cleanSpeaker.includes(c.displayName)))
+      );
+      if (genericMatch) return genericMatch;
+    }
+
     return null;
   }, [config, allConfigs]);
 
@@ -667,6 +679,21 @@ export default function AdventureGameView({
     return spotlight;
   }, [currentIndex, scenario]);
 
+  const activeItemName = useMemo(() => {
+    let itemName: string | undefined = undefined;
+    for (let i = 0; i <= currentIndex; i++) {
+      const item = scenario.items[i];
+      if (item && item.type === 'show-item' && item.itemName) {
+        itemName = item.itemName;
+      } else if (item && item.type === 'dialogue' && item.speaker) {
+        itemName = undefined; // hide on speech
+      } else if (item && item.type === 'scene-change') {
+        itemName = undefined; // hide on scene change
+      }
+    }
+    return itemName;
+  }, [currentIndex, scenario]);
+
   // Old active character slot updaters removed
 
   // Calculate dynamic responsive positions (proportional & overlap preventer)
@@ -807,6 +834,9 @@ export default function AdventureGameView({
             currentBg = '';
           } else if (targetSceneConfig.scenes && targetSceneConfig.scenes[cleanSceneName]) {
             currentBg = targetSceneConfig.scenes[cleanSceneName];
+            solidColor = undefined;
+          } else if (allConfigs?.["汎用"]?.scenes?.[cleanSceneName]) {
+            currentBg = allConfigs["汎用"].scenes[cleanSceneName];
             solidColor = undefined;
           }
           
@@ -1131,6 +1161,34 @@ export default function AdventureGameView({
           {/* Absolute Wrapper to hold all responsive characters */}
           <div className="absolute inset-x-0 bottom-0 top-0 overflow-visible pointer-events-none">
             <AnimatePresence>
+              {isStarted && activeItemName && (() => {
+                const itemConfig = config.items?.[activeItemName] || allConfigs?.["汎用"]?.items?.[activeItemName];
+                if (itemConfig) {
+                  return (
+                    <motion.div
+                      key={`item-${activeItemName}`}
+                      initial={{ opacity: 0, scale: 0.8, x: "-50%", y: "-30%" }}
+                      animate={{ opacity: 1, scale: 1, x: "-50%", y: "-50%" }}
+                      exit={{ opacity: 0, scale: 0.9, y: "-60%" }}
+                      transition={{ type: 'spring', stiffness: 120, damping: 20 }}
+                      className="absolute top-1/2 left-1/2 z-50 pointer-events-none flex flex-col items-center drop-shadow-[0_20px_40px_rgba(0,0,0,0.8)]"
+                    >
+                      <div className="bg-black/20 p-2 sm:p-4 rounded-3xl backdrop-blur-sm border border-white/10">
+                        <img 
+                          src={itemConfig.imageUrl} 
+                          alt={itemConfig.name}
+                          className="max-h-[50vh] max-w-[80vw] object-contain rounded-2xl border-2 border-white/20"
+                        />
+                      </div>
+                      <div className="mt-4 bg-black/80 px-6 py-2 rounded-full border border-white/20 text-white/90 font-bold tracking-widest text-sm sm:text-base">
+                        {itemConfig.name}
+                      </div>
+                    </motion.div>
+                  );
+                }
+                return null;
+              })()}
+
               {isStarted && activeCharacters.map((char, index) => 
                 renderCharacter(char, index, activeCharacters.length)
               )}

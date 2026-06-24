@@ -122,7 +122,7 @@ export function parseBlogContent(content: string): ParsedScenario[] {
           }
 
           const isKnownScenarioStart = [
-            "上司と部下", "ファンタジー", "異世界オーガニックカレー", "幼馴染の図書室"
+            "上司と部下", "ファンタジー", "異世界オーガニックカレー", "幼馴染の図書室", "カムとムニのチキュウジン観察", "汎用"
           ].some(id => cleanTag.includes(id) || id.includes(cleanTag));
 
           const isKnownNonScenario = [
@@ -276,6 +276,29 @@ export function parseBlogContent(content: string): ParsedScenario[] {
               id: `item-${currentScenarioId}-${itemIndex++}`,
               type: 'spotlight',
               speaker: spotlightName,
+              index: itemIndex
+            });
+            continue;
+          }
+        }
+
+        // Check for 【アイテム】
+        const itemMatch = trimmedLine.match(/^(?:【|\[|［)?アイテム(?:】|\]|］)?[：:\s]\s*(.*)$/);
+        const isSpecialItemTag = trimmedLine.startsWith('【アイテム】') || trimmedLine.startsWith('[アイテム]') || trimmedLine.startsWith('［アイテム］');
+        
+        if (itemMatch || isSpecialItemTag) {
+          let itemName = "";
+          if (isSpecialItemTag) {
+            itemName = trimmedLine.replace(/^(?:【アイテム】|\[アイテム\]|［アイテム］)\s*/, '').trim();
+          } else if (itemMatch) {
+            itemName = itemMatch[1].trim();
+          }
+          
+          if (itemName) {
+            currentItems.push({
+              id: `item-${currentScenarioId}-${itemIndex++}`,
+              type: 'show-item',
+              itemName,
               index: itemIndex
             });
             continue;
