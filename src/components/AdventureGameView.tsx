@@ -678,9 +678,10 @@ export default function AdventureGameView({
     const isMobile = windowSize.width < 640;
 
     let widthPx = 256; // default max width
-    const alignY = total <= 2 ? 'center' : 'bottom';
+    let alignY: 'center' | 'bottom' = 'bottom';
 
     if (isLandscape && !isMobile) {
+      alignY = total <= 2 ? 'center' : 'bottom';
       if (total === 1) { leftPercent = 50; widthPx = 300; }
       else if (total === 2) { leftPercent = index === 0 ? 30 : 70; widthPx = 300; }
       else if (total === 3 || total === 4) {
@@ -691,52 +692,36 @@ export default function AdventureGameView({
         widthPx = 220;
       }
     } else {
-      const screenRatio = windowSize.height / windowSize.width;
+      // Portrait / Mobile - Use center alignment for robust grid placement
+      alignY = 'center';
+      
       if (total === 1) { 
         leftPercent = 50; 
-        topPx = "-10%"; 
+        topPx = "0%"; // Exactly center
         widthPx = windowSize.width * 0.70; 
       } else if (total === 2) {
-        // 2 characters layout on mobile/portrait
-        const idealWidth = windowSize.width * 0.46;
-        const idealHeight = idealWidth * 1.3333;
-        // If ideal height fits within 65% of available stage height, we have enough room to not overlap
-        const hasVerticalSpace = stageSize.height > 0 && idealHeight < stageSize.height * 0.65;
-
-        if (hasVerticalSpace) {
-          // Equal placement without vertical overlap stagger
-          leftPercent = index === 0 ? 27 : 73;
-          topPx = "-5%";
-          widthPx = idealWidth;
-        } else {
-          // Fallback to layered overlapping display
+        // Left slightly up, Right slightly down for balance
+        leftPercent = index === 0 ? 25 : 75;
+        topPx = index === 0 ? "-15%" : "15%"; 
+        widthPx = windowSize.width * 0.55;
+      } else if (total === 3) {
+        // 3 characters: Top 2, Bottom center 1
+        const isTop = index < 2;
+        if (isTop) {
           leftPercent = index === 0 ? 25 : 75;
-          const stagger = Math.min(screenRatio * 40, 60); 
-          topPx = index === 0 ? `-${stagger}%` : "-5%";
-          widthPx = windowSize.width * 0.55;
+          topPx = "-22%";
+        } else {
+          leftPercent = 50; // Bottom center
+          topPx = "18%"; // Shifted up slightly for balance
         }
+        widthPx = windowSize.width * 0.50;
       } else {
-        // 3 or 4 characters grid layout on mobile/portrait
+        // 4 characters: 2x2 Grid (Shifted up slightly for balance)
         const isLeft = index % 2 === 0;
         const isTop = index < 2;
-
-        const idealWidth = windowSize.width * 0.45;
-        const idealHeight = idealWidth * 1.3333;
-        // If two full rows fit without overlapping vertically, use clean non-overlapping spacing
-        const hasVerticalSpace = stageSize.height > 0 && (idealHeight * 2.1) < stageSize.height * 0.95;
-
-        if (hasVerticalSpace) {
-          // Equal grid layout completely separated
-          leftPercent = isLeft ? 26 : 74;
-          topPx = isTop ? "-115%" : "0%";
-          widthPx = idealWidth;
-        } else {
-          // Fallback to layered overlapping display
-          leftPercent = isLeft ? 24 : 76;
-          const stagger = Math.min(Math.max(screenRatio * 45, 20), 85);
-          topPx = isTop ? `-${stagger}%` : "0%";
-          widthPx = windowSize.width * 0.52;
-        }
+        leftPercent = isLeft ? 25 : 75;
+        topPx = isTop ? "-24%" : "16%";
+        widthPx = windowSize.width * 0.48;
       }
     }
 
