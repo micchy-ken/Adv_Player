@@ -637,10 +637,8 @@ export default function App() {
             onCreateBlog={handleCreateBlog}
             onPlayScenario={handlePlayScenario}
             onLoadSample={(sampleId) => {
-              if (window.confirm('サンプルシナリオを読み込みますか？現在のリストは上書きされます。')) {
-                setBlogs(DEFAULT_BLOGS);
-                setSelectedBlogId(sampleId);
-              }
+              setBlogs(DEFAULT_BLOGS);
+              setSelectedBlogId(sampleId);
             }}
             scenarios={scenarios}
           />

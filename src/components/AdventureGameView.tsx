@@ -374,6 +374,20 @@ export default function AdventureGameView({
     setSegmentIndex(0);
   }, [currentIndex, currentStep]);
 
+  // Close on ESC during start gate
+  useEffect(() => {
+    if (isStarted) return;
+    
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isStarted, onClose]);
+
   // Preload asset images to ensure smooth transitions
   useEffect(() => {
     if (!isStarted) {
@@ -964,7 +978,7 @@ export default function AdventureGameView({
                 className="w-full py-3.5 mt-2 bg-zinc-950/60 border border-zinc-800 hover:bg-zinc-900 text-rose-300 hover:text-rose-200 font-bold text-xs tracking-widest uppercase rounded-xl shadow-xl active:translate-y-px cursor-pointer transition-all duration-150"
                 id="btn-gate-close"
               >
-                終了
+                中断 (キャンセル)
               </button>
             </motion.div>
           </motion.div>
@@ -1111,8 +1125,8 @@ export default function AdventureGameView({
       </div>
 
       {/* Bottom segment for dialog box (always at bottom) */}
-      <footer className="relative z-20 shrink-0 flex flex-col justify-end bg-gradient-to-t from-black via-black/95 to-transparent pt-3 pb-3 sm:pt-5 sm:pb-6 px-3 sm:px-6 md:px-8">
-        <div className="w-full max-w-4xl mx-auto flex flex-col gap-2.5">
+      <footer className="relative z-20 shrink-0 flex flex-col justify-end pt-3 pb-3 sm:pt-5 sm:pb-6 px-3 sm:px-6 md:px-8 pointer-events-none">
+        <div className="w-full max-w-4xl mx-auto flex flex-col gap-2.5 pointer-events-auto">
           
           {/* Sub-Controller Rails */}
           <div 

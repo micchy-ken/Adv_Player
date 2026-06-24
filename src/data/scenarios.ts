@@ -32,6 +32,12 @@ import FernandaUrl from '../assets/images/fernanda_revealed_warm_1782196252219.j
 import DianeUrl from '../assets/images/diane_younger_1782194161290.jpg';
 import FantasyPlainsUrl from '../assets/images/fantasy_plains_background_1782199323597.jpg';
 
+import AnimeMageUrl from '../assets/images/anime_mage_bust_up_1782273986131.jpg';
+import AnimeMysteriousManUrl from '../assets/images/anime_mysterious_man_bust_up_1782273999879.jpg';
+import AnimeCityCrowdBgUrl from '../assets/images/anime_city_crowd_bg_1782274016880.jpg';
+import AnimeMedievalForestBgUrl from '../assets/images/anime_medieval_forest_bg_1782274030440.jpg';
+import AnimeCaveInteriorBgUrl from '../assets/images/anime_cave_interior_bg_1782274043186.jpg';
+
 export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
   "上司と部下": {
     id: "上司と部下",
@@ -135,7 +141,7 @@ export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
       "魔法使い": {
         key: "魔法使い",
         displayName: "魔法使い",
-        avatarUrl: MysteriousWomanPortraitUrl,
+        avatarUrl: AnimeMageUrl,
         color: "#c084fc", // purple-400
         position: "left"
       },
@@ -149,7 +155,7 @@ export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
       "謎の男": {
         key: "謎の男",
         displayName: "謎の男",
-        avatarUrl: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=800&q=80",
+        avatarUrl: AnimeMysteriousManUrl,
         color: "#475569", // slate-600
         position: "right"
       },
@@ -187,7 +193,10 @@ export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
       "カフェ": TavernCafeUpdatedUrl,
       "山岳": MountainPathUpdatedUrl,
       "平原": FantasyPlainsUrl,
-      "城下町": "https://images.unsplash.com/photo-1467269204594-9661b134dd2b?auto=format&fit=crop&w=1200&q=80"
+      "城下町": "https://images.unsplash.com/photo-1467269204594-9661b134dd2b?auto=format&fit=crop&w=1200&q=80",
+      "都会の雑踏": AnimeCityCrowdBgUrl,
+      "森の中": AnimeMedievalForestBgUrl,
+      "洞窟": AnimeCaveInteriorBgUrl
     }
   }
 };
