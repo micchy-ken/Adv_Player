@@ -38,6 +38,11 @@ import AnimeCityCrowdBgUrl from '../assets/images/anime_city_crowd_bg_1782274016
 import AnimeMedievalForestBgUrl from '../assets/images/anime_medieval_forest_bg_1782274030440.jpg';
 import AnimeCaveInteriorBgUrl from '../assets/images/anime_cave_interior_bg_1782274043186.jpg';
 
+import AnimeHouseGardenBgUrl from '../assets/images/anime_house_garden_bg_1782275882765.jpg';
+import PopAlienKamuUrl from '../assets/images/pop_alien_kamu_1782275894316.jpg';
+import PopAlienMuniUrl from '../assets/images/pop_alien_muni_1782275905593.jpg';
+import PopAliensTogetherUrl from '../assets/images/pop_aliens_together_1782275916828.jpg';
+
 export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
   "上司と部下": {
     id: "上司と部下",
@@ -197,6 +202,38 @@ export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
       "都会の雑踏": AnimeCityCrowdBgUrl,
       "森の中": AnimeMedievalForestBgUrl,
       "洞窟": AnimeCaveInteriorBgUrl
+    }
+  },
+  "カムとムニのチキュウジン観察": {
+    id: "カムとムニのチキュウジン観察",
+    name: "宇宙人の日常",
+    themeColor: "pink",
+    characters: {
+      "カム": {
+        key: "カム",
+        displayName: "カム",
+        avatarUrl: PopAlienKamuUrl,
+        color: "#ec4899", // pink-500
+        position: "left"
+      },
+      "ムニ": {
+        key: "ムニ",
+        displayName: "ムニ",
+        avatarUrl: PopAlienMuniUrl,
+        color: "#f472b6", // pink-400
+        position: "right"
+      },
+      "カムとムニ": {
+        key: "カムとムニ",
+        displayName: "カムとムニ",
+        avatarUrl: PopAliensTogetherUrl,
+        color: "#db2777", // pink-600
+        position: "center"
+      }
+    },
+    scenes: {
+      "標準": AnimeHouseGardenBgUrl,
+      "庭": AnimeHouseGardenBgUrl
     }
   }
 };
@@ -376,6 +413,25 @@ export const DEFAULT_BLOGS: BlogItem[] = [
 ディアーネ: わあっ、大きなオーガさんだ！一緒に遊ぼうよ！
 
 フェルナンダ: ふふふ……賑やかになりそうですね。
+【おわり】`
+  },
+  {
+    id: "sample-6",
+    title: "チキュウジン観察（カムとムニ）",
+    category: "サンプル",
+    description: "",
+    content: `【タイトル】
+チキュウジンの不思議な生態
+
+【カムとムニのチキュウジン観察】
+【シーン】庭
+【登場人物】カム、ムニ
+
+カム: ムニ、見て！チキュウジンが不思議な箱を見つめてニヤニヤしてる！
+
+ムニ: ほんとだ！あれは「スマフォ」っていうらしいよ。
+
+カムとムニ: チキュウジンって不思議だね〜！
 【おわり】`
   }
 ];
