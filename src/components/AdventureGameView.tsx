@@ -691,19 +691,51 @@ export default function AdventureGameView({
       }
     } else {
       const screenRatio = windowSize.height / windowSize.width;
-      if (total === 1) { leftPercent = 50; topPx = "-10%"; widthPx = windowSize.width * 0.70; }
-      else if (total === 2) {
-        leftPercent = index === 0 ? 25 : 75;
-        const stagger = Math.min(screenRatio * 40, 60); 
-        topPx = index === 0 ? `-${stagger}%` : "-5%";
-        widthPx = windowSize.width * 0.55;
+      if (total === 1) { 
+        leftPercent = 50; 
+        topPx = "-10%"; 
+        widthPx = windowSize.width * 0.70; 
+      } else if (total === 2) {
+        // 2 characters layout on mobile/portrait
+        const idealWidth = windowSize.width * 0.46;
+        const idealHeight = idealWidth * 1.3333;
+        // If ideal height fits within 65% of available stage height, we have enough room to not overlap
+        const hasVerticalSpace = stageSize.height > 0 && idealHeight < stageSize.height * 0.65;
+
+        if (hasVerticalSpace) {
+          // Equal placement without vertical overlap stagger
+          leftPercent = index === 0 ? 27 : 73;
+          topPx = "-5%";
+          widthPx = idealWidth;
+        } else {
+          // Fallback to layered overlapping display
+          leftPercent = index === 0 ? 25 : 75;
+          const stagger = Math.min(screenRatio * 40, 60); 
+          topPx = index === 0 ? `-${stagger}%` : "-5%";
+          widthPx = windowSize.width * 0.55;
+        }
       } else {
+        // 3 or 4 characters grid layout on mobile/portrait
         const isLeft = index % 2 === 0;
         const isTop = index < 2;
-        leftPercent = isLeft ? 24 : 76;
-        const stagger = Math.min(Math.max(screenRatio * 45, 20), 85);
-        topPx = isTop ? `-${stagger}%` : "0%";
-        widthPx = windowSize.width * 0.52;
+
+        const idealWidth = windowSize.width * 0.45;
+        const idealHeight = idealWidth * 1.3333;
+        // If two full rows fit without overlapping vertically, use clean non-overlapping spacing
+        const hasVerticalSpace = stageSize.height > 0 && (idealHeight * 2.1) < stageSize.height * 0.95;
+
+        if (hasVerticalSpace) {
+          // Equal grid layout completely separated
+          leftPercent = isLeft ? 26 : 74;
+          topPx = isTop ? "-115%" : "0%";
+          widthPx = idealWidth;
+        } else {
+          // Fallback to layered overlapping display
+          leftPercent = isLeft ? 24 : 76;
+          const stagger = Math.min(Math.max(screenRatio * 45, 20), 85);
+          topPx = isTop ? `-${stagger}%` : "0%";
+          widthPx = windowSize.width * 0.52;
+        }
       }
     }
 
@@ -734,11 +766,15 @@ export default function AdventureGameView({
           }
           // If portrait grid vertical items don't fit, shrink up to 70%
           if (total >= 3) {
-            const requiredHeight = (widthPx * 1.3333) * 2; 
-            if (requiredHeight > stageSize.height) {
-               const scaleRate = Math.max(0.7, stageSize.height / requiredHeight);
-               widthPx *= scaleRate;
-            }
+             const idealWidth = windowSize.width * 0.45;
+             const idealHeight = idealWidth * 1.3333;
+             const hasVerticalSpace = stageSize.height > 0 && (idealHeight * 2.1) < stageSize.height * 0.95;
+
+             const requiredHeight = hasVerticalSpace ? (widthPx * 1.3333) * 2.25 : (widthPx * 1.3333) * 1.5; 
+             if (requiredHeight > stageSize.height) {
+                const scaleRate = Math.max(0.65, stageSize.height / requiredHeight);
+                widthPx *= scaleRate;
+             }
           }
        }
     }
