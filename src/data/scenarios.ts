@@ -1,6 +1,7 @@
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
+ * (Triggering sync for GitHub deployment)
  */
 
 import { ScenarioConfig, BlogItem } from '../types';
