@@ -19,6 +19,7 @@ export interface ItemConfig {
 
 export interface ScenarioConfig {
   id: string; // matches the ***tag***, e.g. "上司と部下"
+  name?: string; // Optional name property for display purposes
   themeColor: string; // e.g. "theme-blue"
   characters: Record<string, CharacterConfig>;
   scenes: Record<string, string>; // sceneName -> backgroundUrl mapper. Default is '標準'

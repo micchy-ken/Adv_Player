@@ -234,6 +234,7 @@ export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
     items: {
       "大剣": {
         key: "大剣",
+        name: "大剣",
         imageUrl: FantasyGreatswordUrl
       }
     }

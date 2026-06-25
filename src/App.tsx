@@ -480,8 +480,8 @@ export default function App() {
     const fuzzyMatch = Object.values(scenarios).find((s: ScenarioConfig) => 
       cleanIdLower.includes(s.id.toLowerCase()) || 
       s.id.toLowerCase().includes(cleanIdLower) ||
-      cleanIdLower.includes(s.name.toLowerCase()) ||
-      s.name.toLowerCase().includes(cleanIdLower)
+      (s.name && cleanIdLower.includes(s.name.toLowerCase())) ||
+      (s.name && s.name.toLowerCase().includes(cleanIdLower))
     );
     if (fuzzyMatch) return fuzzyMatch;
 
