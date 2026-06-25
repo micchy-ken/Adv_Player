@@ -39,14 +39,43 @@ import AnimeMedievalForestBgUrl from '../assets/images/anime_medieval_forest_bg_
 import AnimeCaveInteriorBgUrl from '../assets/images/anime_cave_interior_bg_1782274043186.jpg';
 
 import AnimeHouseGardenBgUrl from '../assets/images/anime_house_garden_bg_1782275882765.jpg';
-import PopAlienKamuUrl from '../assets/images/pop_alien_kamu_1782275894316.jpg';
-import PopAlienMuniUrl from '../assets/images/pop_alien_muni_1782275905593.jpg';
-import PopAliensTogetherUrl from '../assets/images/pop_aliens_together_1782275916828.jpg';
+import PopAlienKamuUrl from '../assets/images/kimo_alien_kamu_1782367685256.jpg';
+import PopAlienMuniUrl from '../assets/images/kimo_alien_muni_1782367700181.jpg';
+import PopAliensTogetherUrl from '../assets/images/kimo_aliens_pair_1782367716150.jpg';
+
+import CastleTownEmptyUrl from '../assets/images/castle_town_empty_1782344247711.jpg';
+import FantasyGreatswordUrl from '../assets/images/fantasy_greatsword_1782344266255.jpg';
+import AnimeHorizonBgUrl from '../assets/images/anime_horizon_background_1782368496132.jpg';
+import HumanMaleSilhouetteUrl from '../assets/images/human_male_silhouette_1782368530945.jpg';
+import HumanFemaleSilhouetteUrl from '../assets/images/human_female_silhouette_1782368561164.jpg';
 
 export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
+  "汎用": {
+    id: "汎用",
+    themeColor: "slate",
+    characters: {
+      "男性": {
+        key: "男性",
+        displayName: "男性",
+        avatarUrl: HumanMaleSilhouetteUrl,
+        color: "#475569", // slate-600
+        position: "left"
+      },
+      "女性": {
+        key: "女性",
+        displayName: "女性",
+        avatarUrl: HumanFemaleSilhouetteUrl,
+        color: "#f43f5e", // rose-500
+        position: "right"
+      }
+    },
+    scenes: {
+      "標準": AnimeHorizonBgUrl,
+      "地平線": AnimeHorizonBgUrl
+    }
+  },
   "上司と部下": {
     id: "上司と部下",
-    name: "オフィスでの業務報告",
     themeColor: "amber",
     characters: {
       "上司": {
@@ -72,7 +101,6 @@ export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
   },
   "ファンタジー": {
     id: "ファンタジー",
-    name: "古の遺跡での対峙",
     themeColor: "indigo",
     characters: {
       "姫": {
@@ -112,7 +140,6 @@ export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
   },
   "異世界オーガニックカレー": {
     id: "異世界オーガニックカレー",
-    name: "田舎のバンガロー風カフェ",
     themeColor: "emerald",
     characters: {
       "由香里": {
@@ -198,7 +225,7 @@ export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
       "カフェ": TavernCafeUpdatedUrl,
       "山岳": MountainPathUpdatedUrl,
       "平原": FantasyPlainsUrl,
-      "城下町": "https://images.unsplash.com/photo-1467269204594-9661b134dd2b?auto=format&fit=crop&w=1200&q=80",
+      "城下町": CastleTownEmptyUrl,
       "都会の雑踏": AnimeCityCrowdBgUrl,
       "森の中": AnimeMedievalForestBgUrl,
       "洞窟": AnimeCaveInteriorBgUrl
@@ -206,39 +233,12 @@ export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
     items: {
       "大剣": {
         key: "大剣",
-        name: "大剣",
-        imageUrl: "https://images.unsplash.com/photo-1595590424283-b8f17842773f?auto=format&fit=crop&w=800&q=80"
+        imageUrl: FantasyGreatswordUrl
       }
-    }
-  },
-  "汎用": {
-    id: "汎用",
-    name: "汎用アセット",
-    themeColor: "slate",
-    characters: {
-      "男性": {
-        key: "男性",
-        displayName: "男性",
-        avatarUrl: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23333333"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>',
-        color: "#475569", // slate-600
-        position: "left"
-      },
-      "女性": {
-        key: "女性",
-        displayName: "女性",
-        avatarUrl: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23333333"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>', // A generic placeholder since simple silhouette is requested.
-        color: "#f43f5e", // rose-500
-        position: "right"
-      }
-    },
-    scenes: {
-      "標準": "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=80",
-      "地平線": "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=80"
     }
   },
   "カムとムニのチキュウジン観察": {
     id: "カムとムニのチキュウジン観察",
-    name: "宇宙人の日常",
     themeColor: "pink",
     characters: {
       "カム": {

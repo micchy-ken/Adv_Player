@@ -664,32 +664,11 @@ export default function App() {
                 </p>
               </div>
 
-              {/* Method A: postMessage Embedding (Safe, highly interactive) */}
-              <div className="border border-zinc-200 rounded-xl p-5 bg-zinc-50 space-y-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-2 bg-emerald-100 text-emerald-900 border border-emerald-200 px-3 py-1 rounded-full text-[10px] font-bold uppercase">
-                    方式 A
-                  </div>
-                  <span className="text-xs font-bold text-zinc-700">ブログ記事本文から自動抽出 (iframe埋め込み)</span>
-                </div>
-                <p className="text-xs text-zinc-600 leading-relaxed">
-                  ブログの本文内に <code>iframe</code> を埋め込み、親子間通信でテキストを受け渡す方式です。CORS制限を気にせず最もインタラクティブに配置できます。
-                </p>
-                <div className="bg-white border border-zinc-200 rounded-xl p-4 space-y-3">
-                  <span className="block text-[10px] font-black uppercase text-zinc-400 mb-1">
-                    埋め込み用 iframe コード (HTML編集画面に貼り付け)
-                  </span>
-                  <div className="bg-zinc-50 p-2.5 rounded-lg border font-mono text-[10px] text-zinc-700 break-all overflow-x-auto">
-                    {`<iframe id="adv-player-iframe" src="${currentAppURL}" style="width:100%; height:550px; border:none; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.05);"></iframe>`}
-                  </div>
-                </div>
-              </div>
-
-              {/* Method B: Static url parameter */}
+              {/* Method A: Static url parameter */}
               <div className="border border-zinc-200 rounded-xl p-5 bg-zinc-50 space-y-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2 bg-blue-100 text-blue-900 border border-blue-200 px-3 py-1 rounded-full text-[10px] font-bold uppercase">
-                    方式 B
+                    方式 A
                   </div>
                   <span className="text-xs font-bold text-zinc-700">記事のURLをパラメータとして引き渡す方法</span>
                 </div>
@@ -740,11 +719,11 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Method C: Referrer auto-read */}
+              {/* Method B: Referrer auto-read */}
               <div className="border border-zinc-200 rounded-xl p-5 bg-zinc-50 space-y-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2 bg-purple-100 text-purple-950 border border-purple-200 px-3 py-1 rounded-full text-[10px] font-bold uppercase">
-                    方式 C (魔法のリンク・リファラー利用)
+                    方式 B (魔法のリンク・リファラー利用)
                   </div>
                   <span className="text-xs font-bold text-zinc-700">自動リファラー読み込み方式</span>
                 </div>
@@ -797,11 +776,11 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Method D: Dynamic HTML Scripting (Universal Bulletproof for Android/Webviews) */}
+              {/* Method C: Dynamic HTML Scripting (Universal Bulletproof for Android/Webviews) */}
               <div className="border border-indigo-200 rounded-xl p-5 bg-indigo-50/70 space-y-4 col-span-full">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2 bg-indigo-600 text-white border border-indigo-750 px-3 py-1 rounded-full text-[10px] font-black uppercase">
-                    方式 D (推奨・スマホ/アプリ完全対応)
+                    方式 C (推奨・スマホ/アプリ完全対応)
                   </div>
                   <span className="text-xs font-black text-indigo-950">動的パラメータ自動付与方式（HTML貼り付け用）</span>
                 </div>
@@ -846,6 +825,29 @@ export default function App() {
                 </div>
               </div>
 
+              {/* Method D: postMessage Embedding (Safe, highly interactive) */}
+              <div className="border border-zinc-200 rounded-xl p-5 bg-zinc-50 space-y-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-2 bg-emerald-100 text-emerald-900 border border-emerald-200 px-3 py-1 rounded-full text-[10px] font-bold uppercase">
+                    方式 D
+                  </div>
+                  <span className="text-xs font-bold text-zinc-700">ブログ記事本文から自動抽出 (iframe埋め込み)</span>
+                </div>
+                <p className="text-xs text-zinc-600 leading-relaxed">
+                  ブログの本文内に <code>iframe</code> を埋め込み、親子間通信でテキストを受け渡す方式です。CORS制限を気にせず最もインタラクティブに配置できます。
+                </p>
+                <div className="bg-white border border-zinc-200 rounded-xl p-4 space-y-3">
+                  <span className="block text-[10px] font-black uppercase text-zinc-400 mb-1">
+                    埋め込み用 iframe コード (HTML編集画面に貼り付け)
+                  </span>
+                  <div className="bg-zinc-50 p-2.5 rounded-lg border font-mono text-[10px] text-zinc-700 break-all overflow-x-auto">
+                    {`<iframe id="adv-player-iframe" src="${currentAppURL}" style="width:100%; height:550px; border:none; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.05);"></iframe>`}
+                  </div>
+                </div>
+              </div>
+
+
+
               {/* Debug Status Panel */}
               <div className="border border-red-200 rounded-xl p-5 bg-red-50/50 space-y-3">
                 <div className="flex items-center gap-2 text-red-900 border-b border-red-100 pb-2 mb-2 font-bold text-xs">
@@ -874,8 +876,8 @@ export default function App() {
                 </div>
                 <p className="text-[10px] text-red-700/80 mt-2 leading-relaxed">
                   ※ はてなブログ等のリンクから飛んできた際、リファラーがトップページURL（例: <code>https://xxx.hatenablog.com/</code>）等に丸められていることがあります。<br/>
-                  その場合「方式C」を利用すると、元の個別記事URLではなくブログのトップページHTMLが取得されてしまい、一番上の記事が自動再生されてしまいます。<br/>
-                  これを回避し、確実に個別記事を読み込ませるには、「方式C」の欄に記載した <code>referrerpolicy="unsafe-url"</code> の付与を利用するか、あるいは一番確実な「方式D」の動的パラメータ自動付与方式をご利用ください。
+                  その場合「方式B」を利用すると、元の個別記事URLではなくブログのトップページHTMLが取得されてしまい、一番上の記事が自動再生されてしまいます。<br/>
+                  これを回避し、確実に個別記事を読み込ませるには、「方式B」の欄に記載した <code>referrerpolicy="unsafe-url"</code> の付与を利用するか、あるいは一番確実な「方式C」の動的パラメータ自動付与方式をご利用ください。
                 </p>
               </div>
 

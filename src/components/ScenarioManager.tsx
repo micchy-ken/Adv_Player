@@ -37,7 +37,6 @@ export default function ScenarioManager({ scenarios }: ScenarioManagerProps) {
             <Sliders className="w-4 h-4 text-purple-600" />
             登録済みシナリオ一覧
           </h2>
-          <p className="text-[10px] text-zinc-500 mb-3">※設定は固定化されています。</p>
           <div className="flex flex-col gap-1.5" id="scenario-list">
             {Object.keys(scenarios).map((id) => (
               <div key={id} className="group flex items-center justify-between gap-1">
@@ -49,8 +48,12 @@ export default function ScenarioManager({ scenarios }: ScenarioManagerProps) {
                       : 'bg-white border-zinc-200 hover:bg-zinc-50'
                   }`}
                 >
-                  <div className="text-[10px] text-zinc-400 font-mono tracking-wide mb-0.5">ID: {id}</div>
-                  {scenarios[id].name}
+                  <div className="text-[11px] font-bold text-zinc-700 mb-1">{id}</div>
+                  {scenarios[id].characters && Object.keys(scenarios[id].characters).length > 0 && (
+                    <div className="text-[9.5px] font-normal text-zinc-500 overflow-hidden text-ellipsis line-clamp-1 leading-relaxed">
+                      {Object.values(scenarios[id].characters).map(c => c.displayName || c.key).join(', ')}
+                    </div>
+                  )}
                 </button>
               </div>
             ))}
@@ -84,9 +87,6 @@ export default function ScenarioManager({ scenarios }: ScenarioManagerProps) {
                   <h3 className="text-xs font-black text-zinc-800">
                     現在のシナリオID: <span className="font-mono text-purple-600 font-black">【{activeScenario.id}】</span>
                   </h3>
-                  <p className="text-[10.5px] text-zinc-400 mt-1">
-                    ブログ内のタグとこのIDが一致すると、本設定の背景やキャラクタープロフィールが反映されます。
-                  </p>
                 </div>
               </div>
 
