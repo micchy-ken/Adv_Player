@@ -470,6 +470,25 @@ export default function AdventureGameView({
       return () => { if (timer) clearTimeout(timer); };
     }
 
+    if (currentStep.type === 'show-item') {
+      setTypedText('');
+      setIsTyping(false);
+
+      const nextItem = scenario.items[currentIndex + 1];
+      const isNextDescription = nextItem && (
+        (nextItem.type === 'dialogue' && !nextItem.speaker) ||
+        nextItem.type === 'click-wait'
+      );
+
+      let timer: any;
+      if (isNextDescription) {
+        timer = setTimeout(() => handleNext(), 50);
+      } else {
+        setTypedText('（クリックして次に進む）');
+      }
+      return () => { if (timer) clearTimeout(timer); };
+    }
+
     if (currentStep.type === 'click-wait') {
       // Clear or display scenic wait
       setTypedText('（クリックして次に進む）');
@@ -664,11 +683,11 @@ export default function AdventureGameView({
     let spotlight: string | undefined = undefined;
     for (let i = 0; i <= currentIndex; i++) {
         const item = scenario.items[i];
-        if (item.type === 'spotlight') {
+        if (item && item.type === 'spotlight') {
             spotlight = item.speaker;
-        } else if (item.type === 'spotlight-end') {
+        } else if (item && item.type === 'spotlight-end') {
             spotlight = undefined;
-        } else if (item.type === 'dialogue' && item.speaker && spotlight) {
+        } else if (item && item.type === 'dialogue' && item.speaker && spotlight) {
             const speakingNames = item.speaker.split(/[、,，・\.．\s\u3000]+/g);
             const isSame = speakingNames.some(n => n.includes(spotlight!) || spotlight!.includes(n));
             if (!isSame) {

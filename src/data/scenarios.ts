@@ -50,6 +50,11 @@ import AnimeHorizonBgUrl from '../assets/images/anime_horizon_background_1782368
 import HumanMaleSilhouetteUrl from '../assets/images/human_male_silhouette_1782368530945.jpg';
 import HumanFemaleSilhouetteUrl from '../assets/images/human_female_silhouette_1782368561164.jpg';
 
+import AnimeAkiUrl from '../assets/images/anime_aki_highschool_girl_1782456499877.jpg';
+import AnimeAzarashiUrl from '../assets/images/anime_azarashi_otaku_boy_1782456515245.jpg';
+import AnimeYokoUrl from '../assets/images/anime_yoko_bob_girl_1782456527259.jpg';
+import AnimeDelinquentTrioUrl from '../assets/images/anime_delinquent_trio_1782456543516.jpg';
+
 export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
   "汎用": {
     id: "汎用",
@@ -68,6 +73,34 @@ export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
         avatarUrl: HumanFemaleSilhouetteUrl,
         color: "#f43f5e", // rose-500
         position: "right"
+      },
+      "亜紀": {
+        key: "亜紀",
+        displayName: "亜紀",
+        avatarUrl: AnimeAkiUrl,
+        color: "#d97706",
+        position: "left"
+      },
+      "アザラシ": {
+        key: "アザラシ",
+        displayName: "アザラシ",
+        avatarUrl: AnimeAzarashiUrl,
+        color: "#2563eb",
+        position: "right"
+      },
+      "葉子": {
+        key: "葉子",
+        displayName: "葉子",
+        avatarUrl: AnimeYokoUrl,
+        color: "#475569",
+        position: "left"
+      },
+      "不良ABC": {
+        key: "不良ABC",
+        displayName: "不良ABC",
+        avatarUrl: AnimeDelinquentTrioUrl,
+        color: "#dc2626",
+        position: "center"
       }
     },
     scenes: {
@@ -262,6 +295,34 @@ export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
         displayName: "カムとムニ",
         avatarUrl: PopAliensTogetherUrl,
         color: "#db2777", // pink-600
+        position: "center"
+      },
+      "亜紀": {
+        key: "亜紀",
+        displayName: "亜紀",
+        avatarUrl: AnimeAkiUrl,
+        color: "#d97706",
+        position: "left"
+      },
+      "アザラシ": {
+        key: "アザラシ",
+        displayName: "アザラシ",
+        avatarUrl: AnimeAzarashiUrl,
+        color: "#2563eb",
+        position: "right"
+      },
+      "葉子": {
+        key: "葉子",
+        displayName: "葉子",
+        avatarUrl: AnimeYokoUrl,
+        color: "#475569",
+        position: "left"
+      },
+      "不良ABC": {
+        key: "不良ABC",
+        displayName: "不良ABC",
+        avatarUrl: AnimeDelinquentTrioUrl,
+        color: "#dc2626",
         position: "center"
       }
     },
