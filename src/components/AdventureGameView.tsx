@@ -13,6 +13,7 @@ interface AdventureGameViewProps {
   config: ScenarioConfig;
   allConfigs?: Record<string, ScenarioConfig>;
   onClose: () => void;
+  onContinue?: (nextUrl: string) => void;
 }
 
 // Retro Synthesized Audio System
@@ -1463,12 +1464,16 @@ export default function AdventureGameView({
                     onClick={(e) => {
                       e.stopPropagation();
                       if (canClose) {
-                        try {
-                          const url = new URL(window.location.href);
-                          url.searchParams.set('url', scenario.nextScenarioUrl!);
-                          window.location.href = url.toString();
-                        } catch (e) {
-                          window.open(scenario.nextScenarioUrl, '_blank');
+                        if (onContinue) {
+                          onContinue(scenario.nextScenarioUrl!);
+                        } else {
+                          try {
+                            const url = new URL(window.location.href);
+                            url.searchParams.set('url', scenario.nextScenarioUrl!);
+                            window.location.href = url.toString();
+                          } catch (e) {
+                            window.open(scenario.nextScenarioUrl, '_blank');
+                          }
                         }
                       }
                     }}

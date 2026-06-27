@@ -916,6 +916,11 @@ export default function App() {
             config={resolvedConfig}
             allConfigs={DEFAULT_SCENARIOS}
             onClose={() => setActivePlayScenario(null)}
+            onContinue={(nextUrl) => {
+               setActivePlayScenario(null);
+               setIntegrationBlogUrl(nextUrl);
+               fetchScenarioFromUrl(nextUrl);
+            }}
           />
         )}
       </AnimatePresence>
