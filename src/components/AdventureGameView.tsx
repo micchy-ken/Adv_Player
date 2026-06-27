@@ -113,7 +113,8 @@ export default function AdventureGameView({
   scenario,
   config,
   allConfigs = {},
-  onClose
+  onClose,
+  onContinue
 }: AdventureGameViewProps) {
   const [isStarted, setIsStarted] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
