@@ -225,6 +225,13 @@ export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
         color: "#475569", // slate-600
         position: "right"
       },
+      "ラース": {
+        key: "ラース",
+        displayName: "ラース",
+        avatarUrl: AnimeMysteriousManUrl,
+        color: "#3b82f6", // blue-500
+        position: "left"
+      },
       "オーガ": {
         key: "オーガ",
         displayName: "オーガ",
