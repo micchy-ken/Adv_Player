@@ -46,6 +46,7 @@ export interface ParsedScenario {
   title: string; // e.g. extracted via ***タイトル*** or default
   items: DialogueItem[];
   initialCharacters?: string[];
+  nextScenarioUrl?: string;
 }
 
 export interface BlogItem {

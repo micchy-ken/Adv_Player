@@ -311,11 +311,13 @@ export default function AdventureGameView({
   const activeCharacters = useMemo(() => {
     let charKeys: string[] = [];
 
-    const scannedKeys = new Set<string>();
-    
-    // First, add characters explicitly declared via initialCharacters, but ONLY if we are relying on that heavily...
-    // Actually, to prevent characters scheduled for later from appearing early, we ALWAYS scan up to currentIndex.
-    // If we want to hide characters until they speak, we should just dynamically accumulate them.
+    if (scenario.initialCharacters && scenario.initialCharacters.length > 0) {
+      if (scenario.initialCharacters[0] !== 'なし' && scenario.initialCharacters[0] !== '無し') {
+        charKeys = [...scenario.initialCharacters];
+      }
+    }
+
+    const scannedKeys = new Set<string>(charKeys);
     
     // Only scan up to the current index, so characters "scheduled to appear" later don't show up early.
     scenario.items.slice(0, currentIndex + 1).forEach(item => {
@@ -336,7 +338,11 @@ export default function AdventureGameView({
     for (let i = 0; i <= currentIndex; i++) {
         const item = scenario.items[i];
         if (item && item.type === 'characters-change' && item.characters) {
-            charKeys = [...item.characters];
+            if (item.characters.length === 1 && (item.characters[0] === 'なし' || item.characters[0] === '無し')) {
+                charKeys = [];
+            } else {
+                charKeys = [...item.characters];
+            }
         }
     }
 
@@ -355,11 +361,6 @@ export default function AdventureGameView({
         });
       }
     });
-
-    if (resolved.length === 0) {
-      const defaultChars = Object.values(config.characters).slice(0, 4);
-      resolved.push(...defaultChars);
-    }
 
     return resolved;
   }, [scenario, config, currentIndex, findCharacterConfig]);
@@ -1456,6 +1457,32 @@ export default function AdventureGameView({
               </p>
 
               <div className="pt-4 flex flex-col gap-3 items-center">
+                {scenario.nextScenarioUrl && (
+                  <button
+                    disabled={!canClose}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (canClose) {
+                        try {
+                          const url = new URL(window.location.href);
+                          url.searchParams.set('url', scenario.nextScenarioUrl!);
+                          window.location.href = url.toString();
+                        } catch (e) {
+                          window.open(scenario.nextScenarioUrl, '_blank');
+                        }
+                      }
+                    }}
+                    className={`w-full py-3 rounded-xl font-bold text-xs transition-all tracking-wider uppercase cursor-pointer ${
+                      canClose
+                        ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-900/20 hover:-translate-y-0.5 active:translate-y-0'
+                        : 'bg-zinc-850 text-zinc-500 cursor-not-allowed opacity-80'
+                    }`}
+                    id="btn-ending-continue"
+                  >
+                    {canClose ? "続きを読む" : "まもなく終了..."}
+                  </button>
+                )}
+
                 <button
                   disabled={!canClose}
                   onClick={(e) => {

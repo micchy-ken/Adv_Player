@@ -107,13 +107,33 @@ export function parseBlogContent(content: string): ParsedScenario[] {
                            tagContent === "終了タグ" ||
                            (tagContent.includes("終了") && !tagContent.includes("スポット") && !tagContent.includes("spotlight"));
           
-          if (isEndTag) {
+          const isContinueTag = tagContent === "続く" || tagContent.includes("続く");
+          
+          if (isEndTag || isContinueTag) {
+            let nextScenarioUrl: string | undefined = undefined;
+            if (isContinueTag) {
+                // Find next URL
+                for (let j = i + 1; j < lines.length; j++) {
+                    const nextLineRaw = lines[j].replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
+                    if (!nextLineRaw) continue;
+                    
+                    const urlMatch = nextLineRaw.match(/(https?:\/\/[^\s>】\]］"']+)/);
+                    if (urlMatch) {
+                        nextScenarioUrl = urlMatch[1];
+                        break;
+                    } else if (nextLineRaw.match(/^\s*(?:\*\*\*|【|［|\[)/)) {
+                        break;
+                    }
+                }
+            }
+
             // Reached end tag, save current scenario if exists
             result.push({
               id: currentScenarioId,
               title: extractedTitle || currentTitle,
               items: [...currentItems],
-              initialCharacters: [...currentInitialCharacters]
+              initialCharacters: [...currentInitialCharacters],
+              nextScenarioUrl
             });
             currentScenarioId = null;
             currentItems = [];
@@ -173,7 +193,9 @@ export function parseBlogContent(content: string): ParsedScenario[] {
                            tagContent === "終了タグ" ||
                            (tagContent.includes("終了") && !tagContent.includes("スポット") && !tagContent.includes("spotlight"));
           
-          if (isEndTag) {
+          const isContinueTag = tagContent === "続く" || tagContent.includes("続く");
+          
+          if (isEndTag || isContinueTag) {
             continue;
           }
 
