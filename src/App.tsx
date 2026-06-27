@@ -77,6 +77,17 @@ const extractTextFromHtml = (htmlContent: string) => {
   // Clean heavy non-blog content elements first (such as headers, footers, navigation, sidebars)
   Array.from(finalDoc.querySelectorAll('script, style, noscript, iframe, link, meta, header, footer, nav, aside, .sidebar, .blog-sidebar, .comment-box, .profile-provider')).forEach(el => el.remove());
   
+  // Extract a hrefs into text content so parser can detect URLs
+  Array.from(finalDoc.querySelectorAll('a')).forEach(a => {
+    // We only care about absolute or relative links. In a real DOMParser output from HTML string, 
+    // a.href might be resolved to localhost or similar if not specified.
+    // The actual href attribute from HTML is a.getAttribute('href').
+    const href = a.getAttribute('href');
+    if (href && (href.startsWith('http') || href.startsWith('/'))) {
+      a.textContent = `${a.textContent} ${href}`;
+    }
+  });
+
   // Fallback to body to parse ALL content together rather than discarding everything except the first matched container.
   // This is extremely important on main/list pages containing multiple posts!
   const rootElement = finalDoc.body;
