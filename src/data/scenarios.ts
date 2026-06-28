@@ -35,6 +35,7 @@ import FantasyPlainsUrl from '../assets/images/fantasy_plains_background_1782199
 
 import AnimeMageUrl from '../assets/images/anime_mage_bust_up_1782273986131.jpg';
 import AnimeMysteriousManUrl from '../assets/images/anime_mysterious_man_bust_up_1782273999879.jpg';
+import AnimeLarsModernUrl from '../assets/images/anime_lars_modern.jpg';
 import AnimeCityCrowdBgUrl from '../assets/images/anime_city_crowd_bg_1782274016880.jpg';
 import AnimeMedievalForestBgUrl from '../assets/images/anime_medieval_forest_bg_1782274030440.jpg';
 import AnimeCaveInteriorBgUrl from '../assets/images/anime_cave_interior_bg_1782274043186.jpg';
@@ -228,7 +229,7 @@ export const DEFAULT_SCENARIOS: Record<string, ScenarioConfig> = {
       "ラース": {
         key: "ラース",
         displayName: "ラース",
-        avatarUrl: AnimeMysteriousManUrl,
+        avatarUrl: AnimeLarsModernUrl,
         color: "#3b82f6", // blue-500
         position: "left"
       },
